@@ -279,3 +279,9 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
     gyro->scale = 1.0f;
     return true;
 }
+
+int imufStartCalibration(bool first, gyroDev_t *gyro) {
+    //send imuf 
+    rxData.param1 = first;
+    return imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_CALIBRATE, &txData, &rxData);
+}

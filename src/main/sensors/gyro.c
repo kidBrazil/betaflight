@@ -723,6 +723,11 @@ static void gyroSetCalibrationCycles(gyroSensor_t *gyroSensor)
 
 void gyroStartCalibration(bool isFirstArmingCalibration)
 {
+    #ifdef USE_GYRO_IMUF9001
+        if (imufStartCalibration(isFirstArmingCalibration, $(gyroSensor1->gyroDev))) {
+            gyroSensor->calibration.calibratingG = 0;
+        }
+    #else
     if (!(isFirstArmingCalibration && firstArmingCalibrationWasStarted)) {
         gyroSetCalibrationCycles(&gyroSensor1);
 
@@ -730,6 +735,7 @@ void gyroStartCalibration(bool isFirstArmingCalibration)
             firstArmingCalibrationWasStarted = true;
         }
     }
+    #endif
 }
 
 bool isFirstArmingGyroCalibrationRunning(void)
