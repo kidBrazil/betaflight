@@ -27,6 +27,9 @@ bool imufSpiGyroDetect(gyroDev_t *gyro);
 void imufSpiGyroInit(gyroDev_t *gyro);
 void imufSpiAccInit(accDev_t *acc);
 
+int imufStartCalibration(bool first, gyroDev_t *gyro);
+
+
 typedef struct imufVersion
 {   
     uint32_t hardware;
