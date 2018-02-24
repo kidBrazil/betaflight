@@ -186,6 +186,7 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
     (void)(gyro); ///not used at this time
     //no reason not to get acc and gyro data at the same time
     #ifdef USE_GYRO_IMUF9001
+    if (isImufCalibrating) return(true);    
     dmaSpiTransmitReceive(dmaTxBuffer, dmaRxBuffer, 32, 0);
     #else
     dmaTxBuffer[0] = MPU_RA_ACCEL_XOUT_H | 0x80;

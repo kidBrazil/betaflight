@@ -29,6 +29,7 @@ void imufSpiAccInit(accDev_t *acc);
 
 int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro);
 
+volatile int isImufCalibrating;
 
 typedef struct imufVersion
 {   
