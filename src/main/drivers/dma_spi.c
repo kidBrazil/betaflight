@@ -52,27 +52,26 @@ void dmaSpicleanupspi(void)
     SPI_I2S_DMACmd(DMA_SPI_SPI, SPI_I2S_DMAReq_Tx, DISABLE);
     SPI_I2S_DMACmd(DMA_SPI_SPI, SPI_I2S_DMAReq_Rx, DISABLE);
 
+    // Reset SPI (clears TXFIFO).
+
     //disable SPI
     SPI_Cmd(DMA_SPI_SPI, DISABLE);
 }
 
 void DMA_SPI_RX_DMA_HANDLER(void)
 {
-    //if(DMA_GetITStatus(DMA_SPI_RX_DMA_STREAM, DMA_SPI_RX_DMA_FLAG_TC))
-    //{
-        dmaSpiCsHi();
-        dmaSpicleanupspi();
-        if(dmaSpiReadStatus != DMA_SPI_BLOCKING_READ_IN_PROGRESS)
-        {
-            dmaSpiReadStatus = DMA_SPI_READ_DONE;
-            gyroDmaSpiFinishRead();
-        }
-        else
-        {
-            dmaSpiReadStatus = DMA_SPI_READ_DONE;
-        }
-        DMA_ClearITPendingBit(DMA_SPI_RX_DMA_STREAM, DMA_SPI_RX_DMA_FLAG_TC);         
-    //}
+    dmaSpiCsHi();
+    dmaSpicleanupspi();
+    if(dmaSpiReadStatus != DMA_SPI_BLOCKING_READ_IN_PROGRESS)
+    {
+        dmaSpiReadStatus = DMA_SPI_READ_DONE;
+        gyroDmaSpiFinishRead();
+    }
+    else
+    {
+        dmaSpiReadStatus = DMA_SPI_READ_DONE;
+    }
+    DMA_ClearITPendingBit(DMA_SPI_RX_DMA_STREAM, DMA_SPI_RX_DMA_FLAG_TC);         
 }
 
 void dmaSpiInit(void)
@@ -81,6 +80,10 @@ void dmaSpiInit(void)
     SPI_InitTypeDef spiInitStruct;
     DMA_InitTypeDef dmaInitStruct;
     NVIC_InitTypeDef nvicInitStruct;
+
+    //reset SPI periphreal
+    DMA_SPI_PER |= DMA_SPI_RST_MSK;
+    DMA_SPI_PER &= ~DMA_SPI_RST_MSK;
 
     //config pins
     gpioInitStruct.GPIO_Pin = DMA_SPI_NSS_PIN;
@@ -127,7 +130,7 @@ void dmaSpiInit(void)
     DMA_StructInit(&dmaInitStruct);
     dmaInitStruct.DMA_Channel = DMA_SPI_TX_DMA_CHANNEL;
     dmaInitStruct.DMA_Mode = DMA_Mode_Normal;
-    dmaInitStruct.DMA_Priority = DMA_Priority_Medium;
+    dmaInitStruct.DMA_Priority = DMA_Priority_High;
     dmaInitStruct.DMA_DIR = DMA_DIR_MemoryToPeripheral;
 
     dmaInitStruct.DMA_PeripheralDataSize = DMA_PeripheralDataSize_Byte;
@@ -143,6 +146,7 @@ void dmaSpiInit(void)
     DMA_Init(DMA_SPI_TX_DMA_STREAM, &dmaInitStruct);
 
     dmaInitStruct.DMA_Channel = DMA_SPI_RX_DMA_CHANNEL;
+    dmaInitStruct.DMA_Priority = DMA_Priority_Medium;
     dmaInitStruct.DMA_DIR = DMA_DIR_PeripheralToMemory;
 
     DMA_Init(DMA_SPI_RX_DMA_STREAM, &dmaInitStruct);

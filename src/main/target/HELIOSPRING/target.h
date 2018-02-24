@@ -104,6 +104,8 @@
 #define DMA_SPI_MOSI_PIN           GPIO_Pin_7
 #define DMA_SPI_MOSI_PORT          GPIOA
 #define DMA_SPI_MOSI_AF            GPIO_AF_SPI1
+#define DMA_SPI_RST_MSK            RCC_APB2RSTR_SPI1RST
+#define DMA_SPI_PER                RCC->APB2RSTR
 
 #define DMA_SPI_SPI                SPI1
 #define DMA_SPI_BAUDRATE           SPI_BaudRatePrescaler_4
@@ -167,7 +169,9 @@
 #define USED_TIMERS             ( TIM_N(1) | TIM_N(8) | TIM_N(4) | TIM_N(12) )
 
 #define IMUF_BIT_I2C_IF_DIS              (1 << 4)
+#ifndef DEBUG
 #define USE_QUAD_MIXER_ONLY
+#endif
 
 #define USE_ADC
 #define ADC_INSTANCE                   ADC1
