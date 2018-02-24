@@ -27,7 +27,7 @@ bool imufSpiGyroDetect(gyroDev_t *gyro);
 void imufSpiGyroInit(gyroDev_t *gyro);
 void imufSpiAccInit(accDev_t *acc);
 
-int imufStartCalibration(bool first, gyroDev_t *gyro);
+int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro);
 
 
 typedef struct imufVersion

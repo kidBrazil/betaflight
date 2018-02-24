@@ -284,12 +284,15 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
     return true;
 }
 
-int imufStartCalibration(bool first, gyroDev_t *gyro) {
-    //send imuf 
-    imufCommand_t txData;
-    imufCommand_t rxData;
-    rxData.param1 = first;
-    int result = imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_CALIBRATE, &txData, &rxData);
-    delay(200);
+int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro) {
+    int result = 1;
+    if (isFirstArmingCalibration) {
+        //send imuf 
+        imufCommand_t txData;
+        imufCommand_t rxData;
+        rxData.param1 = first;
+        result = imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_CALIBRATE, &txData, &rxData);
+        delay(100);
+    }
     return result;
 }
