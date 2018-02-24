@@ -289,12 +289,14 @@ int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro) {
     int result = 1;
     if (isFirstArmingCalibration) {
         isImufCalibrating = 1;
+
+        delay(1)
         //send imuf
         imufCommand_t txData;
         imufCommand_t rxData;
         rxData.param1 = isFirstArmingCalibration;
         result = imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_CALIBRATE, &txData, &rxData);
-        delay(100);
+        delay(50);
         isImufCalibrating = 0;
     }
     return result;
