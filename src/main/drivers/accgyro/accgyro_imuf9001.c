@@ -46,7 +46,7 @@ void crcConfig(void)
     return;
 }
 
-inline uint32_t getCrc(uint32_t* data, uint32_t size)
+inline uint32_t getCrcImuf9001(uint32_t* data, uint32_t size)
 {
     CRC_ResetDR(); //reset data register
     for(uint32_t x=0; x<size; x++ )
@@ -58,7 +58,7 @@ inline uint32_t getCrc(uint32_t* data, uint32_t size)
 
 inline void appendCrcToData(uint32_t* data, uint32_t size)
 {
-    data[size] = getCrc(data, size);;
+    data[size] = getCrcImuf9001(data, size);;
 }
 
 static void resetImuf9001(void)
@@ -95,7 +95,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
     }
 
     command.command = commandToSend;
-    command.crc     = getCrc((uint32_t *)&command, 11);;
+    command.crc     = getCrcImuf9001((uint32_t *)&command, 11);;
 
 
     while (failCount-- > 0)
@@ -106,7 +106,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
             failCount -= 100;
             imufSendReceiveSpiBlocking(&(gyro->bus), (uint8_t *)&command, (uint8_t *)reply, sizeof(imufCommand_t));
 
-            crcCalc = getCrc((uint32_t *)reply, 11);
+            crcCalc = getCrcImuf9001((uint32_t *)reply, 11);
             //this is the only valid reply we'll get if we're in BL mode
             if(crcCalc == reply->crc && reply->command == IMUF_COMMAND_LISTENING ) //this tells us the IMU was listening for a command, else we need to reset synbc
             {
@@ -114,7 +114,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
                 {
                     //reset command, just waiting for reply data now
                     command.command = IMUF_COMMAND_NONE;
-                    command.crc     = getCrc((uint32_t *)&command, 11);
+                    command.crc     = getCrcImuf9001((uint32_t *)&command, 11);
 
                     delayMicroseconds(100); //give pin time to set
 
@@ -124,7 +124,7 @@ static int imuf9001SendReceiveCommand(const gyroDev_t *gyro, gyroCommands_t comm
                         attempt = 100;
 
                         imufSendReceiveSpiBlocking(&(gyro->bus), (uint8_t *)&command, (uint8_t *)reply, sizeof(imufCommand_t));
-                        crcCalc = getCrc((uint32_t *)reply, 11);
+                        crcCalc = getCrcImuf9001((uint32_t *)reply, 11);
 
                         if(crcCalc == reply->crc && reply->command == commandToSend ) //this tells us the IMU understood the last command
                         {
@@ -286,18 +286,9 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
 }
 
 int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro) {
-    int result = 1;
     if (isFirstArmingCalibration) {
-        isImufCalibrating = 1;
-
-        delay(1)
-        //send imuf
-        imufCommand_t txData;
-        imufCommand_t rxData;
-        rxData.param1 = isFirstArmingCalibration;
-        result = imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_CALIBRATE, &txData, &rxData);
-        delay(50);
-        isImufCalibrating = 0;
+        isImufCalibrating = 1; //reset by EXTI
+        delay(50); //give imuf time to calibrate
     }
-    return result;
+    return 1;
 }

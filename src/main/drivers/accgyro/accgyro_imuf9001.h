@@ -167,3 +167,5 @@ typedef enum gyroToBoardCommMode
     GTBCM_GYRO_ACC_QUAT_FILTER_F = 52, //gyro filtered, temp filtered, acc filtered, quaternions filtered, 3*4, 3*4, 4*4, 1*4, 4 byte crc
     GTBCM_DEFAULT                = GTBCM_GYRO_ACC_FILTER_F, //default mode
 } gyroToBoardCommMode_t;
+
+extern uint32_t getCrcImuf9001(uint32_t* data, uint32_t size);
