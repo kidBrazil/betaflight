@@ -88,10 +88,6 @@ typedef struct imuFrame
 
 typedef struct imuCommFrame
 {
-    uint8_t     flags4;
-    uint8_t     flags3;
-    uint8_t     flags2;
-    uint8_t     flags;
     gyroFrame_t gyroFrame;
     imuFrame_t  imuFrame;
     uint32_t    tail;
@@ -163,8 +159,8 @@ typedef enum gyroToBoardCommMode
     GTBCM_GYRO_ONLY_PASSTHRU     = 6,  //no crc, gyro, 3*2 bytes
     GTBCM_GYRO_ACC_PASSTHRU      = 14, //no crc, acc, temp, gyro, 3*2, 1*2, 3*2 bytes
     GTBCM_GYRO_ONLY_FILTER_F     = 20, //gyro filtered, 3*4 bytes, 4 bytes crc
-    GTBCM_GYRO_ACC_FILTER_F      = 32, //gyro filtered, acc filtered, 3*4, 3*4, 4 byte crc
-    GTBCM_GYRO_ACC_QUAT_FILTER_F = 52, //gyro filtered, temp filtered, acc filtered, quaternions filtered, 3*4, 3*4, 4*4, 1*4, 4 byte crc
+    GTBCM_GYRO_ACC_FILTER_F      = 32, //gyro filtered, acc filtered, temp, crc
+    GTBCM_GYRO_ACC_QUAT_FILTER_F = 48, //gyro filtered, acc filtered, temp, quaternions filtered, crc
     GTBCM_DEFAULT                = GTBCM_GYRO_ACC_FILTER_F, //default mode
 } gyroToBoardCommMode_t;
 
