@@ -706,6 +706,22 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
     return gyroCalibration->calibratingG == 1;
 }
 
+#ifdef USE_GYRO_IMUF9001
+
+uint16_t returnGyroAlignmentForImuf9001(void)
+{
+    if(gyroSensor1.gyroDev.gyroAlign == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        return (uint16_t)(gyroSensor1.gyroDev.gyroAlign-1);
+    }
+}
+
+#endif
+
 static uint16_t gyroCalculateCalibratingCycles(void)
 {
     return (CALIBRATING_GYRO_CYCLES / gyro.targetLooptime) * CALIBRATING_GYRO_CYCLES;

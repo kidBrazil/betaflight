@@ -38,6 +38,8 @@
 #include "drivers/time.h"
 #include "fc/config.h"
 
+#include "sensors/boardalignment.h"
+
 void crcConfig(void)
 {
     return;
@@ -232,12 +234,14 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     imufCommand_t rxData;
 
     rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
-    rxData.param2 = gyroConfig()->gyro_align;
+    rxData.param2 = 1; //does nothing, place holder for loop speed
     rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_pitch_r;
     rxData.param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 ) | (uint16_t)gyroConfig()->imuf_roll_r;
     rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | (uint16_t)gyroConfig()->imuf_yaw_r;
     rxData.param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
     rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16);
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 ) | returnGyroAlignmentForImuf9001();
+    rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 ) | (int16_t)boardAlignment()->pitchDegrees;
 
     for (attempt = 0; attempt < 3; attempt++)
     {

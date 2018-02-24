@@ -528,7 +528,9 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
         }
     }
 
+    #ifndef USE_GYRO_IMUF9001
     alignSensors(acc.accADC, acc.dev.accAlign);
+    #endif
 
     if (!accIsCalibrationComplete()) {
         performAcclerationCalibration(rollAndPitchTrims);
