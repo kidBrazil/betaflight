@@ -741,7 +741,7 @@ void gyroStartCalibration(bool isFirstArmingCalibration)
 {
     #ifdef USE_GYRO_IMUF9001
         if (imufStartCalibration(isFirstArmingCalibration, &(gyroSensor1.gyroDev))) {
-            gyroSensor1.calibration.calibratingG = 0;
+            gyroSensor1.calibration.calibratingG = IMUF_NOT_CALIBRATING;
         }
     #else
     if (!(isFirstArmingCalibration && firstArmingCalibrationWasStarted)) {
