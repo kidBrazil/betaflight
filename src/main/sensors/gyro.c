@@ -710,13 +710,13 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
 
 uint16_t returnGyroAlignmentForImuf9001(void)
 {
-    if(gyroSensor1.gyroDev.gyroAlign == 0)
+    if(gyroConfig()->gyro_align) == 0)
     {
         return 0;
     }
     else
     {
-        return (uint16_t)(gyroSensor1.gyroDev.gyroAlign-1);
+        return (uint16_t)(gyroConfig()->gyro_align-1);
     }
 }
 
