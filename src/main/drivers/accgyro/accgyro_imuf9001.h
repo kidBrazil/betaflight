@@ -168,4 +168,12 @@ typedef enum gyroToBoardCommMode
     GTBCM_DEFAULT                = GTBCM_GYRO_ACC_FILTER_F, //default mode
 } gyroToBoardCommMode_t;
 
+typedef enum imufCalibrationSteps
+{
+    IMUF_NOT_CALIBRATING   = 0,
+    IMUF_CALIBRATION_STEP1 = 1,
+    IMUF_CALIBRATION_STEP2 = 2,
+
+} imufCalibrationSteps_t;
+
 extern uint32_t getCrcImuf9001(uint32_t* data, uint32_t size);

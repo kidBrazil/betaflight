@@ -192,17 +192,17 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
         //step 1 is isImufCalibrating=1, this starts the calibration command and sends it to the IMU-f
         //step 2 is isImufCalibrating=2, this sets the tx buffer back to 0 so we don't keep sending the calibration command over and over
         memset(dmaTxBuffer, 0, sizeof(imufCommand_t)); //clear buffer
-        if (isImufCalibrating == 1) //step 1, set the command to be sent
+        if (isImufCalibrating == IMUF_CALIBRATION_STEP1) //step 1, set the command to be sent
         {
             //set calibration command with CRC, typecast the dmaTxBuffer as imufCommand_t
             (*(imufCommand_t *)(dmaTxBuffer)).command = IMUF_COMMAND_CALIBRATE;
             (*(imufCommand_t *)(dmaTxBuffer)).crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
             //set isImufCalibrating to step 2, which is just used so the memset to 0 runs after the calibration commmand is sent
-            isImufCalibrating = 2;
+            isImufCalibrating = IMUF_CALIBRATION_STEP2; //go to step two
         }
         else
         {   //step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
-            isImufCalibrating = 0;
+            isImufCalibrating = IMUF_NOT_CALIBRATING;
         }
 
     }

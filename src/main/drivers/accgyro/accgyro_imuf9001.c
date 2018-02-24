@@ -286,6 +286,7 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
 }
 
 int imufStartCalibration(bool isFirstArmingCalibration, gyroDev_t *gyro) {
+    (void)(gyro);
     if (isFirstArmingCalibration) {
         isImufCalibrating = 1; //reset by EXTI
         delay(50); //give imuf time to calibrate
