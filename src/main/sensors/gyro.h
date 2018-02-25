@@ -91,7 +91,6 @@ typedef struct gyroConfig_s {
     uint16_t gyro_filter_p;
 #endif
     uint8_t  gyro_stage2_filter_type;
-    int16_t  gyro_offset_yaw;
 } gyroConfig_t;
 
 PG_DECLARE(gyroConfig_t, gyroConfig);

@@ -272,18 +272,6 @@ retry:
         FALLTHROUGH;
 #endif
 
-#ifdef USE_ACC_SPI_ICM20689
-    case ACC_ICM20689:
-        if (icm20689SpiAccDetect(dev)) {
-            accHardware = ACC_ICM20689;
-#ifdef ACC_ICM20689_ALIGN
-            dev->accAlign = ACC_ICM20689_ALIGN;
-#endif
-            break;
-        }
-        FALLTHROUGH;
-#endif
-
 #ifdef USE_ACC_IMUF9001
     case ACC_IMUF9001:
         if (imufSpiAccDetect(dev)) {
@@ -292,7 +280,6 @@ retry:
         }
         FALLTHROUGH;
 #endif
-
 
 #ifdef USE_ACC_SPI_ICM20689
     case ACC_ICM20689:
