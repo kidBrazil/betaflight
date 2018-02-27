@@ -31,6 +31,8 @@
 #include "fc/rc_modes.h"
 #include "fc/runtime_config.h"
 
+#include "flight/failsafe.h"
+
 #include "io/vtx.h"
 #include "io/vtx_string.h"
 #include "io/vtx_control.h"
@@ -50,6 +52,7 @@ PG_RESET_TEMPLATE(vtxSettingsConfig_t, vtxSettingsConfig,
     .freq = VTX_SETTINGS_DEFAULT_FREQ,
     .pitModeFreq = VTX_SETTINGS_DEFAULT_PITMODE_FREQ,
     .lowPowerDisarm = VTX_SETTINGS_DEFAULT_LOW_POWER_DISARM,
+    .akkStyleEndFrame = VTX_SETTINGS_DEFAULT_AKK_HACK,
 );
 
 typedef enum {
@@ -106,7 +109,7 @@ static vtxSettingsConfig_t vtxGetSettings(void)
     }
 #endif
 
-    if (!ARMING_FLAG(ARMED) && settings.lowPowerDisarm) {
+    if (!ARMING_FLAG(ARMED) && settings.lowPowerDisarm && !failsafeIsActive()) {
         settings.power = VTX_SETTINGS_DEFAULT_POWER;
     }
 
