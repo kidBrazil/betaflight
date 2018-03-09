@@ -48,7 +48,11 @@ static uint16_t freqBeep = 0;
 static bool pwmMotorsEnabled = false;
 static bool isDshot = false;
 #ifdef USE_DSHOT_DMAR
+#ifdef FORCE_DSHOT_DMAR
+bool useBurstDshot = true;
+#else
 bool useBurstDshot = false;
+#endif
 #endif
 
 static void pwmOCConfig(TIM_TypeDef *tim, uint8_t channel, uint16_t value, uint8_t output)
@@ -303,7 +307,11 @@ void motorDevInit(const motorDevConfig_t *motorConfig, uint16_t idlePulse, uint8
         }
 #endif
 
+#if defined(STM32F1)
+        IOConfigGPIO(motors[motorIndex].io, IOCFG_AF_PP);
+#else
         IOConfigGPIOAF(motors[motorIndex].io, IOCFG_AF_PP, timerHardware->alternateFunction);
+#endif
 
         /* standard PWM outputs */
         // margin of safety is 4 periods when unsynced

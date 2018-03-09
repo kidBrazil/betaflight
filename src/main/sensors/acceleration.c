@@ -51,6 +51,9 @@
 #include "drivers/accgyro/accgyro_spi_mpu6000.h"
 #include "drivers/accgyro/accgyro_spi_mpu6500.h"
 #include "drivers/accgyro/accgyro_spi_mpu9250.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif //USE_GYRO_IMUF9001
 #include "drivers/bus_spi.h"
 
 #include "fc/config.h"
@@ -271,6 +274,15 @@ retry:
         FALLTHROUGH;
 #endif
 
+#ifdef USE_ACC_IMUF9001
+    case ACC_IMUF9001:
+        if (imufSpiAccDetect(dev)) {
+            accHardware = ACC_ICM20689;
+            break;
+        }
+        FALLTHROUGH;
+#endif
+
 #ifdef USE_ACC_SPI_ICM20689
     case ACC_ICM20689:
         if (icm20689SpiAccDetect(dev)) {
@@ -295,6 +307,7 @@ retry:
         FALLTHROUGH;
 #endif
 
+
 #ifdef USE_FAKE_ACC
     case ACC_FAKE:
         if (fakeAccDetect(dev)) {
@@ -303,6 +316,7 @@ retry:
         }
         FALLTHROUGH;
 #endif
+
 
     default:
     case ACC_NONE: // disable ACC
@@ -481,15 +495,20 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
 {
     UNUSED(currentTimeUs);
 
+    #ifndef USE_ACC_IMUF9001
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
+    #endif
+
     acc.isAccelUpdatedAtLeastOnce = true;
 
+    #ifndef USE_ACC_IMUF9001
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         DEBUG_SET(DEBUG_ACCELEROMETER, axis, acc.dev.ADCRaw[axis]);
         acc.accADC[axis] = acc.dev.ADCRaw[axis];
     }
+    #endif
 
     if (accLpfCutHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -497,7 +516,9 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
         }
     }
 
+    #ifndef USE_GYRO_IMUF9001
     alignSensors(acc.accADC, acc.dev.accAlign);
+    #endif
 
     if (!accIsCalibrationComplete()) {
         performAcclerationCalibration(rollAndPitchTrims);

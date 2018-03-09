@@ -59,13 +59,13 @@
 #define MSP_PROTOCOL_VERSION                0
 
 #define API_VERSION_MAJOR                   1  // increment when major changes are made
-#define API_VERSION_MINOR                   37 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
+#define API_VERSION_MINOR                   38 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
 
 #define API_VERSION_LENGTH                  2
 
 #define MULTIWII_IDENTIFIER "MWII";
 #define BASEFLIGHT_IDENTIFIER "BAFL";
-#define BETAFLIGHT_IDENTIFIER "BTFL"
+#define BUTTERFLIGHT_IDENTIFIER "BTTR"
 #define CLEANFLIGHT_IDENTIFIER "CLFL"
 #define INAV_IDENTIFIER "INAV"
 #define RACEFLIGHT_IDENTIFIER "RCFL"
@@ -326,3 +326,7 @@
 #define MSP_SET_4WAY_IF          245    //in message          Sets 4way interface
 #define MSP_SET_RTC              246    //in message          Sets the RTC clock
 #define MSP_RTC                  247    //out message         Gets the RTC clock
+
+// additionnal advanced filter settings
+#define MSP_ADVANCED_FILTER_CONFIG 225         //out message
+#define MSP_SET_ADVANCED_FILTER_CONFIG 226     //in message
