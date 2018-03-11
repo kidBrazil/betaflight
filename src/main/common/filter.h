@@ -70,9 +70,9 @@ typedef enum {
 } filterType_e;
 
 typedef enum {
-    KD_FILTER_CLASSIC = 0,
-    KD_FILTER_SP,
-    KD_FILTER_NOSP,
+    CLASSIC = 0, //kd filter
+    SP,
+    NOSP,
 } kdFilterStyle_e;
 
 typedef enum {

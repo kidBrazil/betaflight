@@ -108,7 +108,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .dterm_notch_hz = 260,
         .dterm_notch_cutoff = 160,
         .dterm_filter_type = FILTER_PT1,
-        .dterm_filter_style = KD_FILTER_CLASSIC,
+        .dterm_filter_style = CLASSIC,
         .itermWindupPointPercent = 50,
         .vbatPidCompensation = 0,
         .pidAtMinThrottle = PID_STABILISATION_ON,
@@ -511,28 +511,28 @@ void pidController(const pidProfile_t *pidProfile, const rollAndPitchTrims_t *an
         if (axis != FD_YAW) {
             // apply filters
             float gyroRateFiltered = dtermNotchFilterApplyFn(dtermFilterNotch[axis], gyroRate);
-            if (pidProfile->dterm_filter_style == KD_FILTER_CLASSIC)
+            if (pidProfile->dterm_filter_style == CLASSIC)
             {
                 gyroRateFiltered = dtermLpfApplyFn(dtermFilterLpf[axis], gyroRateFiltered);
             }
 
             const float rD = dynCd * MIN(getRcDeflectionAbs(axis) * relaxFactor, 1.0f) * currentPidSetpoint - gyroRateFiltered;    // cr - y
             const float pureRD = dynCd * MIN(getRcDeflectionAbs(axis) * relaxFactor, 1.0f) * getSetpointRate(axis) - gyroRateFiltered;    // cr - y
-            
+
             float delta = 0.0f;
             float iDT = 1.0f/deltaT; //divide once
 
             switch (pidProfile->dterm_filter_style) {
-                case KD_FILTER_CLASSIC:
+                case CLASSIC:
                     delta = (rD - previousRateError[axis]) * iDT;
                     previousRateError[axis] = rD;
                     break;
-                case KD_FILTER_SP:
+                case SP:
                     //filter Kd properly along with sp
                     delta = dtermLpfApplyFn(dtermFilterLpf[axis], (rD - previousRateError[axis]) * iDT );
                     previousRateError[axis] = rD;
                     break;
-                case KD_FILTER_NOSP:
+                case NOSP:
                     //filter Kd properly, no sp
                     delta = dtermLpfApplyFn(dtermFilterLpf[axis], (pureRD - previousRateError[axis]) * iDT );
                     previousRateError[axis] = pureRD;
