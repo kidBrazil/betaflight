@@ -41,7 +41,7 @@ void targetConfiguration(void) {
     gyroConfigMutable()->gyro_soft_lpf_hz = 0;
     gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;
     gyroConfigMutable()->gyro_soft_notch_hz_2 = 0;
-    gyroConfigMutable()->gyroMovementCalibrationThreshold = 5;
+    gyroConfigMutable()->gyroMovementCalibrationThreshold = 20;
 
     for (uint8_t pidProfileIndex = 0; pidProfileIndex < MAX_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
@@ -66,12 +66,12 @@ void targetConfiguration(void) {
         //optimizng for IDKWTF set the normal defaults
     #else
         //optimizng for true-x and most standard tunes.
-        pidProfile->pid[PID_PITCH].P = 45;	
+        pidProfile->pid[PID_PITCH].P = 35;	
         pidProfile->pid[PID_PITCH].I = 50;	
-        pidProfile->pid[PID_PITCH].D = 30;	
-        pidProfile->pid[PID_ROLL].P = 45;	
+        pidProfile->pid[PID_PITCH].D = 20;	
+        pidProfile->pid[PID_ROLL].P = 35;	
         pidProfile->pid[PID_ROLL].I = 50;	
-        pidProfile->pid[PID_ROLL].D = 30;
+        pidProfile->pid[PID_ROLL].D = 20;
     #endif
 
         /* Setpoints */

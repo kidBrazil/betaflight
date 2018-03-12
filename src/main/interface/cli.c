@@ -3786,7 +3786,7 @@ const clicmd_t cmdTable[] = {
 static void cliReportImufErrors(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintf("Current Comm Errors: %ul", imufCrcErrorCount);
+    cliPrintf("Current Comm Errors: %lu", imufCrcErrorCount);
     cliPrintLinefeed();
 }
 
