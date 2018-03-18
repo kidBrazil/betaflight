@@ -25,6 +25,7 @@
 #define LED0_PIN                PB7
 
 #define BEEPER                  PC15
+#define BEEPER_INVERTED
 
 #define USE_GYRO
 #define USE_ACC
