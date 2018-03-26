@@ -54,6 +54,7 @@
 #include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #ifdef USE_GYRO_IMUF9001
 #include "drivers/accgyro/accgyro_imuf9001.h"
+#include "drivers/time.h"
 #endif //USE_GYRO_IMUF9001
 #include "drivers/accgyro/gyro_sync.h"
 #include "drivers/bus_spi.h"
@@ -96,6 +97,10 @@ typedef struct gyroCalibration_s {
     stdev_t var[XYZ_AXIS_COUNT];
     uint16_t calibratingG;
 } gyroCalibration_t;
+
+#ifdef USE_GYRO_IMUF9001
+uint32_t lastImufExtiTime = 0;
+#endif
 
 bool firstArmingCalibrationWasStarted = false;
 
@@ -187,16 +192,16 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_cutoff_2 = 0,
     .checkOverflow = GYRO_OVERFLOW_CHECK_ALL_AXES,
     .imuf_mode = 32,
+    .imuf_rate = IMUF_RATE_16K,
     .imuf_pitch_q = HELIO_PROFILE_PITCH_Q,
-    .imuf_pitch_r = 88,
+    .imuf_pitch_w = 6,
     .imuf_roll_q = HELIO_PROFILE_ROLL_Q,
-    .imuf_roll_r = 88,
+    .imuf_roll_w = 6,
     .imuf_yaw_q = HELIO_PROFILE_YAW_Q,
-    .imuf_yaw_r = 88,
+    .imuf_yaw_w = 6,
     .imuf_pitch_lpf_cutoff_hz = 150.0f,
     .imuf_roll_lpf_cutoff_hz = 150.0f,
     .imuf_yaw_lpf_cutoff_hz = 150.0f,
-    .imuf_dyn_gain = HELIO_PROFILE_DYN_GAIN,
     .gyro_offset_yaw = 0,
 );
 #else
@@ -709,6 +714,30 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
 }
 
 #ifdef USE_GYRO_IMUF9001
+
+bool gyroIsSane(void)
+{
+    if (micros() - lastImufExtiTime > 1000)
+    {
+        //no EXTI in 1000 us, that's bad
+        return false;
+    }
+
+    //0.0f on all three during an arm check is next to impossible
+    if( !isGyroSensorCalibrationComplete(&gyroSensor1) )
+    {
+        return false;
+    }
+
+    //100 CRC errors is a lot
+    if (imufCrcErrorCount > 100)
+    {
+        imufCrcErrorCount = 0;
+        return false;
+    }
+
+    return true;
+}
 
 uint16_t returnGyroAlignmentForImuf9001(void)
 {
