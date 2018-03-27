@@ -28,16 +28,6 @@ extern int accSumCount;
 extern float accVelScale;
 extern int32_t accSum[XYZ_AXIS_COUNT];
 
-typedef struct {
-    float w,x,y,z;
-} quaternion;
-#define QUATERNION_INITIALIZE  {.w=1, .x=0, .y=0,.z=0}
-
-typedef struct {
-    float ww,wx,wy,wz,xx,xy,xz,yy,yz,zz;
-} quaternionProducts;
-#define QUATERNION_PRODUCTS_INITIALIZE  {.ww=1, .wx=0, .wy=0, .wz=0, .xx=0, .xy=0, .xz=0, .yy=0, .yz=0, .zz=0}
-
 typedef union {
     int16_t raw[XYZ_AXIS_COUNT];
     struct {
@@ -50,6 +40,7 @@ typedef union {
 #define EULER_INITIALIZE  { { 0, 0, 0 } }
 
 extern attitudeEulerAngles_t attitude;
+extern quaternion qHeadfree;
 
 typedef struct accDeadband_s {
     uint8_t xy;                 // set the acc deadband for xy-Axis
@@ -74,6 +65,13 @@ typedef struct imuRuntimeConfig_s {
     accDeadband_t accDeadband;
 } imuRuntimeConfig_t;
 
+enum {
+    DEBUG_IMU_VGYROMODULUS,
+    DEBUG_IMU_VKPKIMODULUS,
+    DEBUG_IMU_VACCMODULUS,
+    DEBUG_IMU_FREE
+};
+
 void imuConfigure(uint16_t throttle_correction_angle);
 
 float getCosTiltAngle(void);
@@ -91,6 +89,4 @@ void imuSetHasNewData(uint32_t dt);
 #endif
 #endif
 
-void imuQuaternionComputeProducts(quaternion *quat, quaternionProducts *quatProd);
 bool imuQuaternionHeadfreeOffsetSet(void);
-void imuQuaternionHeadfreeTransformVectorEarthToBody(t_fp_vector_def * v);

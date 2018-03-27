@@ -438,8 +438,8 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_ATTITUDE] = {
         .taskName = "ATTITUDE",
         .taskFunc = imuUpdateAttitude,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
-        .staticPriority = TASK_PRIORITY_MEDIUM,
+        .desiredPeriod = TASK_PERIOD_HZ(200),
+        .staticPriority = TASK_PRIORITY_HIGH,
     },
 
     [TASK_RX] = {

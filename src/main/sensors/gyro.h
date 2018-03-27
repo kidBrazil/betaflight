@@ -19,10 +19,12 @@
 
 #include "common/axis.h"
 #include "common/time.h"
+#include "common/maths.h"
 #include "pg/pg.h"
 #include "drivers/bus.h"
 #include "drivers/sensor.h"
 
+extern float vGyroStdDevModulus;
 typedef enum {
     GYRO_NONE = 0,
     GYRO_DEFAULT,
@@ -115,7 +117,7 @@ void gyroDmaSpiFinishRead(void);
 void gyroDmaSpiStartRead(void);
 #endif
 void gyroUpdate(timeUs_t currentTimeUs);
-bool gyroGetAccumulationAverage(float *accumulation);
+bool gyroGetAverage(quaternion *vAverage);
 const busDevice_t *gyroSensorBus(void);
 struct mpuConfiguration_s;
 const struct mpuConfiguration_s *gyroMpuConfiguration(void);

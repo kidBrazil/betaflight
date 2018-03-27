@@ -348,21 +348,22 @@ void updateRcCommands(void)
             }
         }
     }
-    if (FLIGHT_MODE(HEADFREE_MODE)) {
-        static t_fp_vector_def  rcCommandBuff;
 
-        rcCommandBuff.X = rcCommand[ROLL];
-        rcCommandBuff.Y = rcCommand[PITCH];
-        if ((!FLIGHT_MODE(ANGLE_MODE)&&(!FLIGHT_MODE(HORIZON_MODE)))) {
-            rcCommandBuff.Z = rcCommand[YAW];
+    if (FLIGHT_MODE(HEADFREE_MODE)) {
+        static quaternion  vRcCommand;
+        // in ANGLE_MODE and HORIZON_MODE  yaw rotation is bodyframe bound, in ACRO_MODE it is earthframe bound
+        vRcCommand.x = rcCommand[ROLL];
+        vRcCommand.y = rcCommand[PITCH];
+        if ((!FLIGHT_MODE(ANGLE_MODE) && (!FLIGHT_MODE(HORIZON_MODE)))) {
+            vRcCommand.z = rcCommand[YAW];
         } else {
-            rcCommandBuff.Z = 0;
+            vRcCommand.z = 0;
         }
-        imuQuaternionHeadfreeTransformVectorEarthToBody(&rcCommandBuff);
-        rcCommand[ROLL] = rcCommandBuff.X;
-        rcCommand[PITCH] = rcCommandBuff.Y;
-        if ((!FLIGHT_MODE(ANGLE_MODE)&&(!FLIGHT_MODE(HORIZON_MODE)))) {
-            rcCommand[YAW] = rcCommandBuff.Z;
+        quaternionTransformVectorEarthToBody(&vRcCommand, &qHeadfree);
+        rcCommand[ROLL] = vRcCommand.x;
+        rcCommand[PITCH] = vRcCommand.y;
+        if ((!FLIGHT_MODE(ANGLE_MODE) && (!FLIGHT_MODE(HORIZON_MODE)))) {
+            rcCommand[YAW] = vRcCommand.z;
         }
     }
 }
