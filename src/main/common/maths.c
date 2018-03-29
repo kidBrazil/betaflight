@@ -381,10 +381,14 @@ void quaternionComputeProducts(quaternion *qIn, quaternionProducts *qPout) {
 }
 
 void quaternionMultiply(quaternion *l, quaternion *r, quaternion *o) {
-    o->w = l->w * r->w - l->x * r->x - l->y * r->y - l->z * r->z;
-    o->x = l->w * r->x + l->x * r->w + l->y * r->z - l->z * r->y;
-    o->y = l->w * r->y - l->x * r->z + l->y * r->w + l->z * r->x;
-    o->z = l->w * r->z + l->x * r->y - l->y * r->x + l->z * r->w;
+    const float w = l->w * r->w - l->x * r->x - l->y * r->y - l->z * r->z;
+    const float x = l->w * r->x + l->x * r->w + l->y * r->z - l->z * r->y;
+    const float y = l->w * r->y - l->x * r->z + l->y * r->w + l->z * r->x;
+    const float z = l->w * r->z + l->x * r->y - l->y * r->x + l->z * r->w;
+    o->w = w;
+    o->x = x;
+    o->y = y;
+    o->z = z;
 }
 
 void quaternionNormalize(quaternion *q) {
