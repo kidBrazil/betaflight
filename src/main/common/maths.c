@@ -381,18 +381,14 @@ void quaternionComputeProducts(quaternion *qIn, quaternionProducts *qPout) {
 }
 
 void quaternionMultiply(quaternion *l, quaternion *r, quaternion *o) {
-    const float w = l->w * r->w - l->x * r->x - l->y * r->y - l->z * r->z;
-    const float x = l->w * r->x + l->x * r->w + l->y * r->z - l->z * r->y;
-    const float y = l->w * r->y - l->x * r->z + l->y * r->w + l->z * r->x;
-    const float z = l->w * r->z + l->x * r->y - l->y * r->x + l->z * r->w;
-    o->w = w;
-    o->x = x;
-    o->y = y;
-    o->z = z;
+    o->w = l->w * r->w - l->x * r->x - l->y * r->y - l->z * r->z;
+    o->x = l->w * r->x + l->x * r->w + l->y * r->z - l->z * r->y;
+    o->y = l->w * r->y - l->x * r->z + l->y * r->w + l->z * r->x;
+    o->z = l->w * r->z + l->x * r->y - l->y * r->x + l->z * r->w;
 }
 
 void quaternionNormalize(quaternion *q) {
-    float modulus = sqrtf(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
+    float modulus = quaternionModulus(q);
     if (modulus == 0) {
       modulus = 0.0000001;
     }
@@ -417,7 +413,7 @@ void quaternionCopy(quaternion *s, quaternion *d) {
 }
 
 void quaternionInverse(quaternion *i, quaternion *o) {
-    float norm = i->w * i->w + i->x * i->x + i->y * i->y + i->z * i->z;
+    float norm = quaternionNorm(i);
     if (norm == 0) {
         norm = 0.0000001;
     }
@@ -435,15 +431,15 @@ void quaternionConjugate(quaternion *i, quaternion *o) {
 }
 
 float quaternionDotProduct(quaternion *l, quaternion *r) {
-    return(l->w * r->w + l->x * r->x + l->y * r->y + l->z * r->z);
+    return (l->w * r->w + l->x * r->x + l->y * r->y + l->z * r->z);
 }
 
 float quaternionNorm(quaternion *q) {
-    return(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
+    return (q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z);
 }
 
 float quaternionModulus(quaternion *q) {
-    return(sqrtf(q->w * q->w + q->x * q->x + q->y * q->y + q->z * q->z));
+    return (sqrtf(quaternionNorm(q)));
 }
 
 void quaternionInitQuaternion(quaternion *i) {
