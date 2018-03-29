@@ -418,10 +418,10 @@ void quaternionCopy(quaternion *s, quaternion *d) {
 }
 
 void quaternionConjugate(quaternion *i, quaternion *o) {
-    o->w = i->w;
-    o->x = i->x * -1;
-    o->y = i->y * -1;
-    o->z = i->z * -1;
+    o->w = + i->w;
+    o->x = - i->x;
+    o->y = - i->y;
+    o->z = - i->z;
 }
 
 float quaternionDotProduct(quaternion *l, quaternion *r) {
