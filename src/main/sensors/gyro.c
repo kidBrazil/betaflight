@@ -748,9 +748,8 @@ uint16_t returnGyroAlignmentForImuf9001(void)
 
 #endif
 
-static uint16_t gyroCalculateCalibratingCycles(void)
-{
-    return (CALIBRATING_GYRO_CYCLES / gyro.targetLooptime) * CALIBRATING_GYRO_CYCLES;
+static uint16_t gyroCalculateCalibratingCycles(void) {
+    return (CALIBRATING_GYRO_TIME_US / gyro.targetLooptime);
 }
 
 static bool isOnFirstGyroCalibrationCycle(const gyroCalibration_t *gyroCalibration)
@@ -789,7 +788,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroSensor_t *gyroSensor, uint8_t
             gyroSensor->gyroDev.gyroZero[axis] = 0;
         }
 
-        // Sum up CALIBRATING_GYRO_CYCLES readings
+        // Sum up CALIBRATING_GYRO_TIME_US readings
         #ifdef USE_GYRO_IMUF9001
         gyroSensor->calibration.sum[axis] += (int32_t)(gyroSensor->gyroDev.gyroADC[axis] * 16.4f); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
         devPush(&gyroSensor->calibration.var[axis], (gyroSensor->gyroDev.gyroADC[axis] * 16.4f) ); //imuf sends floats, so we need to scale it because bf is hard coded to look for float times 16.4
