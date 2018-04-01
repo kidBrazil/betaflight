@@ -30,13 +30,13 @@ void imufSpiAccInit(accDev_t *acc);
 void imufStartCalibration(void);
 
 #ifndef IMUF_DEFAULT_PITCH_Q
-#define IMUF_DEFAULT_PITCH_Q  1500
+#define IMUF_DEFAULT_PITCH_Q  3500
 #endif
 #ifndef IMUF_DEFAULT_ROLL_Q
-#define IMUF_DEFAULT_ROLL_Q  1500
+#define IMUF_DEFAULT_ROLL_Q  3500
 #endif
 #ifndef IMUF_DEFAULT_YAW_Q
-#define IMUF_DEFAULT_YAW_Q  1500
+#define IMUF_DEFAULT_YAW_Q  2500
 #endif
 #ifndef IMUF_DEFAULT_PITCH_W
 #define IMUF_DEFAULT_PITCH_W  10
