@@ -39,6 +39,9 @@
 #include "fc/config.h"
 
 #include "sensors/boardalignment.h"
+
+#include "drivers/system.h"
+
 volatile uint32_t isImufCalibrating = 0;
 
 void crcConfig(void)
@@ -149,7 +152,18 @@ int imuf9001Whoami(const gyroDev_t *gyro)
         {
             switch ( (*(imufVersion_t *)&(reply.param1)).firmware )
             {
-                case 101: //version 101 allowed right now
+                case 101:
+                case 102:
+                case 103:
+                    //force update
+                    if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
+                    {
+                        (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
+                        delay(10);
+                        systemReset();
+                    }
+                break;
+                case 104: //version 103 required right now
                     return IMUF_9001_SPI;
                 break;
                 default:
@@ -233,12 +247,12 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     imufCommand_t rxData;
 
     rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
-    rxData.param2 = 1; //does nothing, place holder for loop speed
-    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_pitch_r;
-    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 ) | (uint16_t)gyroConfig()->imuf_roll_r;
-    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | (uint16_t)gyroConfig()->imuf_yaw_r;
+    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16 );
+    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_pitch_w;
+    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 ) | (uint16_t)gyroConfig()->imuf_roll_w;
+    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | (uint16_t)gyroConfig()->imuf_yaw_w;
     rxData.param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
-    rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_dyn_gain;
+    rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16) | (uint16_t)0;
     rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 ) | returnGyroAlignmentForImuf9001();
     rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 ) | (int16_t)boardAlignment()->pitchDegrees;
 
