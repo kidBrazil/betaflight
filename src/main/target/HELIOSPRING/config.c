@@ -45,19 +45,9 @@ void targetConfiguration(void) {
     motorConfigMutable()->dev.motorPwmRate = 32000;
     pidConfigMutable()->pid_process_denom = 2; // 16KHZ PID
     systemConfigMutable()->cpu_overclock = 1; //192MHz makes Multishot run a little better because of maths.
-    accelerometerConfigMutable()->acc_hardware = ACC_NONE;
     
     for (uint8_t pidProfileIndex = 0; pidProfileIndex < MAX_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
-
-        pidProfile->pid[PID_PITCH].P = IMUF_DEFAULT_PITCH_P;	
-        pidProfile->pid[PID_PITCH].I = IMUF_DEFAULT_PITCH_I;	
-        pidProfile->pid[PID_PITCH].D = IMUF_DEFAULT_PITCH_D;	
-        pidProfile->pid[PID_ROLL].P = IMUF_DEFAULT_ROLL_P;	
-        pidProfile->pid[PID_ROLL].I = IMUF_DEFAULT_ROLL_I;	
-        pidProfile->pid[PID_ROLL].D = IMUF_DEFAULT_ROLL_D;
-        pidProfile->pid[PID_YAW].P = IMUF_DEFAULT_YAW_P;	
-        pidProfile->pid[PID_YAW].I = IMUF_DEFAULT_YAW_I;
 
         /* Setpoints */
         // should't need to set these since they don't get init in gyro.c with USE_GYRO_IMUF

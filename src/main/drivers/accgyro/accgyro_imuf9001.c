@@ -43,7 +43,7 @@
 #include "drivers/system.h"
 
 
-static const uint16_t imufCurrentVersion = 105;
+static const uint16_t imufCurrentVersion = 104;
 volatile uint32_t isImufCalibrating = 0;
 
 void crcConfig(void)
