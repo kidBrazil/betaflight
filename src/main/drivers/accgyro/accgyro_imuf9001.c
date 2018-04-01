@@ -42,6 +42,8 @@
 
 #include "drivers/system.h"
 
+
+static const uint16_t imufCurrentVersion = 105;
 volatile uint32_t isImufCalibrating = 0;
 
 void crcConfig(void)
@@ -150,24 +152,16 @@ int imuf9001Whoami(const gyroDev_t *gyro)
     {
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_REPORT_INFO, &reply, NULL))
         {
-            switch ( (*(imufVersion_t *)&(reply.param1)).firmware )
-            {
-                case 101:
-                case 102:
-                case 103:
-                    //force update
-                    if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
-                    {
-                        (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
-                        delay(10);
-                        systemReset();
-                    }
-                break;
-                case 104: //version 103 required right now
-                    return IMUF_9001_SPI;
-                break;
-                default:
-                break;
+            if ((*(imufVersion_t *)&(reply.param1)).firmware < imufCurrentVersion) {
+                //force update
+                if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
+                {
+                    (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
+                    delay(10);
+                    systemReset();
+                }
+            } else {
+                return IMUF_9001_SPI;
             }
         }
     }
