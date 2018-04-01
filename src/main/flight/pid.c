@@ -107,7 +107,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .dterm_lpf_hz = 65,    // filtering ON by default
         .dterm_notch_hz = 260,
         .dterm_notch_cutoff = 160,
-        .dterm_filter_type = FILTER_PT1,
+        .dterm_filter_type = FILTER_BIQUAD,
         .dterm_filter_style = KD_FILTER_NOSP,
         .itermWindupPointPercent = 50,
         .vbatPidCompensation = 0,
