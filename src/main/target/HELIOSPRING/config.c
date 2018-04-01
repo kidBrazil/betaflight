@@ -41,7 +41,9 @@ void targetConfiguration(void) {
     rxConfigMutable()->rcInterpolationInterval = 14;
     rxConfigMutable()->rcInterpolationChannels = RC_INTERP_RPYT;
     motorConfigMutable()->dev.motorPwmProtocol = PWM_TYPE_MULTISHOT;
-    pidConfigMutable()->pid_process_denom = 1; // 32KHZ PID
+    motorConfigMutable()->dev.useUnsyncedPwm = true;
+    motorConfigMutable()->dev.motorPwmRate = 32000;
+    pidConfigMutable()->pid_process_denom = 2; // 16KHZ PID
     systemConfigMutable()->cpu_overclock = 1; //192MHz makes Multishot run a little better because of maths.
     accelerometerConfigMutable()->acc_hardware = ACC_NONE;
     
