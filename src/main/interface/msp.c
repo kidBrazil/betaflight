@@ -1178,6 +1178,7 @@ static bool mspProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_hz_2);
         sbufWriteU16(dst, gyroConfig()->gyro_soft_notch_cutoff_2);
         sbufWriteU8(dst, currentPidProfile->dterm_filter_type);
+	    sbufWriteU8(dst, gyroConfig()->gyro_stage2_filter_type);
         break;
 
 #ifdef USE_GYRO_FAST_KALMAN
@@ -1664,6 +1665,9 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         if (sbufBytesRemaining(src) >= 1) {
             currentPidProfile->dterm_filter_type = sbufReadU8(src);
         }
+	    if (sbufBytesRemaining(src) >= 1){
+		    gyroConfigMutable()->gyro_stage2_filter_type = sbufReadU8(src);
+	    }
         // reinitialize the gyro filters with the new values
         validateAndFixGyroConfig();
         gyroInitFilters();
