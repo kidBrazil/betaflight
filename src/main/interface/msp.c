@@ -1665,7 +1665,7 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         if (sbufBytesRemaining(src) >= 1) {
             currentPidProfile->dterm_filter_type = sbufReadU8(src);
         }
-        if (sbufBytesRemaining(src) >= 1){
+        if (sbufBytesRemaining(src) >= 1) {
             gyroConfigMutable()->gyro_stage2_filter_type = sbufReadU8(src);
         }
         // reinitialize the gyro filters with the new values
