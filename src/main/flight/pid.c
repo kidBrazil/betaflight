@@ -169,11 +169,9 @@ void pidStabilisationState(pidStabilisationState_e pidControllerState)
 const angle_index_t rcAliasToAngleIndexMap[] = { AI_ROLL, AI_PITCH };
 
 static FAST_RAM filterApplyFnPtr dtermNotchFilterApplyFn;
-static FAST_RAM void *dtermFilterNotch[2];
+static FAST_RAM void *dtermFilterNotch[3];
 static FAST_RAM filterApplyFnPtr dtermLpfApplyFn;
-static FAST_RAM void *dtermFilterLpf[2];
-static FAST_RAM filterApplyFnPtr ptermYawFilterApplyFn;
-static FAST_RAM void *ptermYawFilter;
+static FAST_RAM void *dtermFilterLpf[3];
 
 typedef union dtermFilterLpf_u {
     pt1Filter_t pt1Filter[2];
@@ -189,7 +187,6 @@ void pidInitFilters(const pidProfile_t *pidProfile)
         // no looptime set, so set all the filters to null
         dtermNotchFilterApplyFn = nullFilterApply;
         dtermLpfApplyFn = nullFilterApply;
-        ptermYawFilterApplyFn = nullFilterApply;
         return;
     }
 
@@ -248,15 +245,6 @@ void pidInitFilters(const pidProfile_t *pidProfile)
             }
             break;
         }
-    }
-
-    static pt1Filter_t pt1FilterYaw;
-    if (pidProfile->yaw_lpf_hz == 0 || pidProfile->yaw_lpf_hz > pidFrequencyNyquist) {
-        ptermYawFilterApplyFn = nullFilterApply;
-    } else {
-        ptermYawFilterApplyFn = (filterApplyFnPtr)pt1FilterApply;
-        ptermYawFilter = &pt1FilterYaw;
-        pt1FilterInit(ptermYawFilter, pidProfile->yaw_lpf_hz, dT);
     }
 }
 
@@ -494,9 +482,6 @@ void pidController(const pidProfile_t *pidProfile, const rollAndPitchTrims_t *an
 
         // -----calculate P component and add Dynamic Part based on stick input
         axisPID_P[axis] = Kp[axis] * errorRate * tpaFactor;
-        if (axis == FD_YAW) {
-            axisPID_P[axis] = ptermYawFilterApplyFn(ptermYawFilter, axisPID_P[axis]);
-        }
 
         // -----calculate I component
         const float ITerm = axisPID_I[axis];
