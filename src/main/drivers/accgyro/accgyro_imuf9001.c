@@ -267,10 +267,15 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     }
 }
 
+bool imufReadAccData(accDev_t *acc) {
+    UNUSED(acc);
+    return true;
+}
+
 bool imufSpiAccDetect(accDev_t *acc)
 {
     acc->initFn = imufSpiAccInit;
-    acc->readFn = NULL;
+    acc->readFn = imufReadAccData;
 
     return true;
 }

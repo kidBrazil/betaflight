@@ -399,7 +399,7 @@ static bool isOnFirstAccelerationCalibrationCycle(void)
     return calibratingA == CALIBRATING_ACC_CYCLES;
 }
 
-static void performAcclerationCalibration(rollAndPitchTrims_t *rollAndPitchTrims)
+static void performAccelerationCalibration(rollAndPitchTrims_t *rollAndPitchTrims)
 {
     static int32_t a[3];
 
@@ -419,10 +419,12 @@ static void performAcclerationCalibration(rollAndPitchTrims_t *rollAndPitchTrims
     }
 
     if (isOnFinalAccelerationCalibrationCycle()) {
+        static const float halfCycles = (CALIBRATING_ACC_CYCLES / 2);
+        
         // Calculate average, shift Z down by acc_1G and store values in EEPROM at end of calibration
-        accelerationTrims->raw[X] = a[X] / CALIBRATING_ACC_CYCLES;
-        accelerationTrims->raw[Y] = a[Y] / CALIBRATING_ACC_CYCLES;
-        accelerationTrims->raw[Z] = a[Z] / CALIBRATING_ACC_CYCLES - acc.dev.acc_1G;
+        accelerationTrims->raw[X] = (a[X] + halfCycles) / CALIBRATING_ACC_CYCLES;
+        accelerationTrims->raw[Y] = (a[Y] + halfCycles) / CALIBRATING_ACC_CYCLES;
+        accelerationTrims->raw[Z] = (a[Z] + halfCycles) / CALIBRATING_ACC_CYCLES - acc.dev.acc_1G;
 
         resetRollAndPitchTrims(rollAndPitchTrims);
 
@@ -495,20 +497,16 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
 {
     UNUSED(currentTimeUs);
 
-    #ifndef USE_ACC_IMUF9001
     if (!acc.dev.readFn(&acc.dev)) {
         return;
     }
-    #endif
 
     acc.isAccelUpdatedAtLeastOnce = true;
 
-    #ifndef USE_ACC_IMUF9001
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         DEBUG_SET(DEBUG_ACCELEROMETER, axis, acc.dev.ADCRaw[axis]);
         acc.accADC[axis] = acc.dev.ADCRaw[axis];
     }
-    #endif
 
     if (accLpfCutHz) {
         for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
@@ -516,12 +514,10 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
         }
     }
 
-    #ifndef USE_GYRO_IMUF9001
     alignSensors(acc.accADC, acc.dev.accAlign);
-    #endif
 
     if (!accIsCalibrationComplete()) {
-        performAcclerationCalibration(rollAndPitchTrims);
+        performAccelerationCalibration(rollAndPitchTrims);
     }
 
     if (feature(FEATURE_INFLIGHT_ACC_CAL)) {
