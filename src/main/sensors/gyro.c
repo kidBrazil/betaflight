@@ -156,10 +156,8 @@ STATIC_UNIT_TESTED gyroDev_t * const gyroDevPtr = &gyroSensor1.gyroDev;
     #if defined(USE_GYRO_BIQUAD_RC_FIR2)
     static void gyroInitFilterBiquadRCFIR2(gyroSensor_t *gyroSensor, uint16_t lpfHz);
     #endif // USE_GYRO_BIQUAD_RC_FIR2
-#endif //!USE_GYRO_IMUF9001
-
-static void gyroInitSensorFilters(gyroSensor_t *gyroSensor);
-
+    static void gyroInitSensorFilters(gyroSensor_t *gyroSensor);
+#endif
 #define DEBUG_GYRO_CALIBRATION 3
 
 #ifdef STM32F10X
@@ -479,10 +477,11 @@ static bool gyroInitSensor(gyroSensor_t *gyroSensor)
     if (gyroConfig()->gyro_align != ALIGN_DEFAULT) {
         gyroSensor->gyroDev.gyroAlign = gyroConfig()->gyro_align;
     }
-
+#ifndef USE_GYRO_IMUF9001
     gyroInitSensorFilters(gyroSensor);
 #ifdef USE_GYRO_DATA_ANALYSE
     gyroDataAnalyseInit(gyro.targetLooptime);
+#endif
 #endif
     return true;
 }
@@ -599,6 +598,8 @@ static void gyroInitFilterNotch2(gyroSensor_t *gyroSensor, uint16_t notchHz, uin
 #endif //!USE_GYRO_IMUF9001
 
 #ifdef USE_GYRO_DATA_ANALYSE
+#ifndef USE_GYRO_IMUF9001
+
 static bool isDynamicFilterActive(void)
 {
     return feature(FEATURE_DYNAMIC_FILTER);
@@ -607,7 +608,6 @@ static bool isDynamicFilterActive(void)
 static void gyroInitFilterDynamicNotch(gyroSensor_t *gyroSensor)
 {
     gyroSensor->notchFilterDynApplyFn = nullFilterApply;
-#ifndef USE_GYRO_IMUF9001
     if (isDynamicFilterActive()) {
         gyroSensor->notchFilterDynApplyFn = (filterApplyFnPtr)biquadFilterApplyDF1; // must be this function, not DF2
         const float notchQ = filterGetNotchQ(400, 390); //just any init value
@@ -615,10 +615,10 @@ static void gyroInitFilterDynamicNotch(gyroSensor_t *gyroSensor)
             biquadFilterInit(&gyroSensor->notchFilterDyn[axis], 400, gyro.targetLooptime, notchQ, FILTER_NOTCH);
         }
     }
-#endif //!USE_GYRO_IMUF9001
-
 }
+#endif //!USE_GYRO_IMUF9001
 #endif
+
 
 #ifndef USE_GYRO_IMUF9001
 #if defined(USE_GYRO_FAST_KALMAN)
@@ -662,6 +662,7 @@ static void gyroInitFilterBiquadRCFIR2(gyroSensor_t *gyroSensor, uint16_t lpfHz)
 }
 #endif // USE_GYRO_BIQUAD_RC_FIR2
 #endif //!USE_GYRO_IMUF9001
+#ifndef USE_GYRO_IMUF9001
 
 static void gyroInitSensorFilters(gyroSensor_t *gyroSensor)
 {
@@ -677,21 +678,21 @@ static void gyroInitSensorFilters(gyroSensor_t *gyroSensor)
         gyroInitFilterBiquadRCFIR2(gyroSensor, gyroConfig()->gyro_soft_lpf_hz_2);
     #endif // USE_GYRO_BIQUAD_RC_FIR2
 #endif //!USE_GYRO_IMUF9001
-#ifndef USE_GYRO_IMUF9001
     gyroInitFilterLpf(gyroSensor, gyroConfig()->gyro_soft_lpf_hz);
     gyroInitFilterNotch1(gyroSensor, gyroConfig()->gyro_soft_notch_hz_1, gyroConfig()->gyro_soft_notch_cutoff_1);
     gyroInitFilterNotch2(gyroSensor, gyroConfig()->gyro_soft_notch_hz_2, gyroConfig()->gyro_soft_notch_cutoff_2);
-#endif //!USE_GYRO_IMUF9001
 
 #ifdef USE_GYRO_DATA_ANALYSE
     gyroInitFilterDynamicNotch(gyroSensor);
 #endif
+
 }
 
 void gyroInitFilters(void)
 {
     gyroInitSensorFilters(&gyroSensor1);
 }
+#endif //!USE_GYRO_IMUF9001
 
 FAST_CODE bool isGyroSensorCalibrationComplete(const gyroSensor_t *gyroSensor)
 {
@@ -705,7 +706,12 @@ FAST_CODE bool isGyroCalibrationComplete(void)
 
 static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibration)
 {
+    #ifdef USE_GYRO_IMUF9001
+    UNUSED(gyroCalibration);
+    return !isImufCalibrating;
+    #else
     return gyroCalibration->calibratingG == 1;
+    #endif
 }
 
 #ifdef USE_GYRO_IMUF9001
@@ -765,10 +771,15 @@ static void gyroSetCalibrationCycles(gyroSensor_t *gyroSensor)
 void gyroStartCalibration(bool isFirstArmingCalibration)
 {
     if (!(isFirstArmingCalibration && firstArmingCalibrationWasStarted)) {
+        #ifdef USE_GYRO_IMUF9001
+        //first calibration cycle needs to send calibration command
+        imufStartCalibration();
+        #else
         gyroSetCalibrationCycles(&gyroSensor1);
         if (isFirstArmingCalibration) {
             firstArmingCalibrationWasStarted = true;
         }
+        #endif
     }
 }
 
@@ -821,13 +832,7 @@ STATIC_UNIT_TESTED void performGyroCalibration(gyroSensor_t *gyroSensor, uint8_t
         }      
     }
 
-    #ifdef USE_GYRO_IMUF9001
-    if (gyroSensor->calibration.calibratingG == gyroCalculateCalibratingCycles())
-    {
-        //first calibration cycle needs to send calibration command
-        imufStartCalibration();
-    }
-    #endif
+
     
     if (isOnFinalGyroCalibrationCycle(&gyroSensor->calibration)) {
         schedulerResetTaskStatistics(TASK_SELF); // so calibration cycles do not pollute tasks statistics
@@ -921,6 +926,11 @@ static FAST_CODE void gyroUpdateSensor(gyroSensor_t *gyroSensor, timeUs_t curren
     const timeDelta_t sampleDeltaUs = currentTimeUs - accumulationLastTimeSampledUs;
     accumulationLastTimeSampledUs = currentTimeUs;
     accumulatedMeasurementTimeUs += sampleDeltaUs;
+
+    if (gyroConfig()->checkOverflow) {
+        checkForOverflow(gyroSensor, currentTimeUs);
+    }
+
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         // NOTE: this branch optimized for when there is no gyro debugging, ensure it is kept in step with non-optimized branch
         float gyroADCf = gyroSensor->gyroDev.gyroADC[axis] * gyroSensor->gyroDev.scale;

@@ -212,7 +212,8 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
         }
         else
         {   //step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
-            isImufCalibrating = IMUF_NOT_CALIBRATING;
+            imufEndCalibration();
+            
         }
 
     }

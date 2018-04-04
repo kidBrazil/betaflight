@@ -1670,7 +1670,9 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
         }
         // reinitialize the gyro filters with the new values
         validateAndFixGyroConfig();
+        #ifndef USE_GYRO_IMUF9001
         gyroInitFilters();
+        #endif
         // reinitialize the PID filters with the new values
         pidInitFilters(currentPidProfile);
         break;
