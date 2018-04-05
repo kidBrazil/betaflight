@@ -260,6 +260,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
 
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_SETUP, &txData, &rxData))
         {
+            delay(1);
             //enable EXTI
             mpuGyroInit(gyro);
             return;
