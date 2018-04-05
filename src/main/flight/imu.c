@@ -357,7 +357,7 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     }
 #endif
 #if defined(USE_GPS)
-    else if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 600) {
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 600) {
         static bool hasInitializedGPSHeading = false;
         // In case of a fixed-wing aircraft we can use GPS course over ground to correct heading
         if(STATE(FIXED_WING)) {
