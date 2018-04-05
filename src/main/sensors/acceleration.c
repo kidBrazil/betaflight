@@ -419,7 +419,7 @@ static void performAccelerationCalibration(rollAndPitchTrims_t *rollAndPitchTrim
     }
 
     if (isOnFinalAccelerationCalibrationCycle()) {
-        static const float halfCycles = (CALIBRATING_ACC_CYCLES / 2);
+        static const float halfCycles = (CALIBRATING_ACC_CYCLES * 0.5f);
         
         // Calculate average, shift Z down by acc_1G and store values in EEPROM at end of calibration
         accelerationTrims->raw[X] = (a[X] + halfCycles) / CALIBRATING_ACC_CYCLES;
@@ -496,7 +496,7 @@ static void applyAccelerationTrims(const flightDynamicsTrims_t *accelerationTrim
 void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
 {
     UNUSED(currentTimeUs);
-    
+
     #ifndef USE_ACC_IMUF9001
     if (!acc.dev.readFn(&acc.dev)) {
         return;
