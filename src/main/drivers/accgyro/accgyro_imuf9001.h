@@ -28,7 +28,6 @@ void imufSpiGyroInit(gyroDev_t *gyro);
 void imufSpiAccInit(accDev_t *acc);
 
 void imufStartCalibration(void);
-void imufEndCalibration(void);
 
 #ifndef IMUF_DEFAULT_PITCH_Q
 #define IMUF_DEFAULT_PITCH_Q  3500
