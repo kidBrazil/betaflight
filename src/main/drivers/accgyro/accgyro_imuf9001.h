@@ -28,6 +28,7 @@ void imufSpiGyroInit(gyroDev_t *gyro);
 void imufSpiAccInit(accDev_t *acc);
 
 void imufStartCalibration(void);
+void imufEndCalibration(void);
 
 #ifndef IMUF_DEFAULT_PITCH_Q
 #define IMUF_DEFAULT_PITCH_Q  3500
@@ -47,8 +48,6 @@ void imufStartCalibration(void);
 #ifndef IMUF_DEFAULT_YAW_W
 #define IMUF_DEFAULT_YAW_W  10
 #endif
-
-
 
 volatile uint32_t isImufCalibrating;
 
@@ -187,9 +186,9 @@ typedef enum gyroToBoardCommMode
 
 typedef enum imufCalibrationSteps
 {
-    IMUF_NOT_CALIBRATING   = 0,
-    IMUF_CALIBRATION_STEP1 = 1,
-    IMUF_CALIBRATION_STEP2 = 2,
+    IMUF_NOT_CALIBRATING    = 0,
+    IMUF_IS_CALIBRATING     = 1,
+    IMUF_DONE_CALIBRATING   = 2
 
 } imufCalibrationSteps_t;
 

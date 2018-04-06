@@ -43,7 +43,7 @@
 #include "drivers/system.h"
 
 
-static const uint16_t imufCurrentVersion = 104;
+static const uint16_t imufCurrentVersion = 105;
 volatile uint32_t isImufCalibrating = 0;
 
 void crcConfig(void)
@@ -267,10 +267,15 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     }
 }
 
+bool imufReadAccData(accDev_t *acc) {
+    UNUSED(acc);
+    return true;
+}
+
 bool imufSpiAccDetect(accDev_t *acc)
 {
     acc->initFn = imufSpiAccInit;
-    acc->readFn = NULL;
+    acc->readFn = imufReadAccData;
 
     return true;
 }
@@ -293,5 +298,10 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
 
 void imufStartCalibration(void)
 {
-    isImufCalibrating = IMUF_CALIBRATION_STEP1; //reset by EXTI
+    isImufCalibrating = IMUF_IS_CALIBRATING; //reset by EXTI
+}
+
+void imufEndCalibration(void)
+{
+    isImufCalibrating = IMUF_NOT_CALIBRATING; //reset by EXTI
 }
