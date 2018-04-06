@@ -297,13 +297,6 @@ void disarm(void)
 
 void tryArm(void)
 {
-    #ifdef USE_GYRO_IMUF9001
-    if(!gyroIsSane())
-    {
-        setArmingDisabled(ARMING_DISABLED_NO_GYRO);
-    }
-    #endif
-
     if (armingConfig()->gyro_cal_on_first_arm) {
         gyroStartCalibration(true);
     }
