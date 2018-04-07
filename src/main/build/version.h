@@ -22,7 +22,7 @@
 #define FC_FIRMWARE_NAME            "ButterFlight"
 #define FC_VERSION_MAJOR            3  // increment when a major release is made (big new feature, etc)
 #define FC_VERSION_MINOR            5  // increment when a minor release is made (small new feature, change etc)
-#define FC_VERSION_PATCH_LEVEL      0  // increment when a bug is fixed
+#define FC_VERSION_PATCH_LEVEL      1  // increment when a bug is fixed
 
 #if defined(USE_GYRO_IMUF9001)
     #define IMUF_VERSION_MAJOR       1
