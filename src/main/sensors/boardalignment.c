@@ -38,7 +38,7 @@ static float boardRotation[3][3];              // matrix
 // no template required since defaults are zero
 PG_REGISTER(boardAlignment_t, boardAlignment, PG_BOARD_ALIGNMENT, 0);
 
-static bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment)
+bool isBoardAlignmentStandard(const boardAlignment_t *boardAlignment)
 {
     return !boardAlignment->rollDegrees && !boardAlignment->pitchDegrees && !boardAlignment->yawDegrees;
 }
@@ -75,6 +75,11 @@ FAST_CODE void alignSensors(float *dest, uint8_t rotation)
     const float x = dest[X];
     const float y = dest[Y];
     const float z = dest[Z];
+
+    if (!standardBoardAlignment) {
+        alignBoard(dest);
+        return;
+    }
 
     switch (rotation) {
     default:
@@ -119,7 +124,4 @@ FAST_CODE void alignSensors(float *dest, uint8_t rotation)
         dest[Z] = -z;
         break;
     }
-
-    if (!standardBoardAlignment)
-        alignBoard(dest);
 }

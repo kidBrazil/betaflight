@@ -47,6 +47,9 @@
 #include "sensors/compass.h"
 #include "sensors/gyro.h"
 #include "sensors/sensors.h"
+#ifdef USE_ACC_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_MULTITHREAD)
 #include <stdio.h>
@@ -316,7 +319,7 @@ static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, bool useAcc, quater
 
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void) {
     quaternionProducts buffer;
-
+    
     if (FLIGHT_MODE(HEADFREE_MODE)) {
         quaternionMultiply(&qOffset, &qAttitude, &qHeadfree);
         quaternionComputeProducts(&qHeadfree, &buffer);
@@ -338,7 +341,6 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void) {
         DISABLE_STATE(SMALL_ANGLE);
     }
 }
-
 static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 {
     static timeUs_t previousIMUUpdateTime;
@@ -414,6 +416,17 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 
 void imuUpdateAttitude(timeUs_t currentTimeUs)
 {
+#ifdef USE_ACC_IMUF9001
+    UNUSED(currentTimeUs);
+    IMU_LOCK;
+    qAttitude.w = imufQuat.w;
+    qAttitude.x = imufQuat.x;
+    qAttitude.y = imufQuat.y;
+    qAttitude.z = imufQuat.z;
+    imuUpdateEulerAngles();
+    IMU_UNLOCK;
+    return;
+#endif //USE_ACC_IMUF9001
     if (sensors(SENSOR_ACC) && acc.isAccelUpdatedAtLeastOnce) {
         IMU_LOCK;
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_IMU_SYNC)

@@ -57,6 +57,10 @@
 #include "sensors/battery.h"
 #include "sensors/gyro.h"
 
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
+
 #ifndef USE_OSD_SLAVE
 pidProfile_t *currentPidProfile;
 #endif
@@ -340,14 +344,16 @@ static void validateAndFixConfig(void)
 void validateAndFixGyroConfig(void)
 {
     #ifdef USE_GYRO_IMUF9001
-    if ((motorConfigMutable()->dev.motorPwmProtocol == PWM_TYPE_DSHOT1200 
-      || motorConfigMutable()->dev.motorPwmProtocol == PWM_TYPE_DSHOT600)
-      && (pidConfigMutable()->pid_process_denom == 1 && gyroConfigMutable()->gyro_sync_denom == 1)
-      && rxConfigMutable()->rcInterpolation != RC_SMOOTHING_OFF
-      && systemConfigMutable()->cpu_overclock != 2) 
+    if (gyroConfigMutable()->gyro_sync_denom < 2 && 
+        pidConfigMutable()->pid_process_denom < 2 &&
+       (motorConfigMutable()->dev.motorPwmProtocol == PWM_TYPE_DSHOT1200 
+      || motorConfigMutable()->dev.motorPwmProtocol == PWM_TYPE_DSHOT600
+      || motorConfigMutable()->dev.motorPwmProtocol == PWM_TYPE_PROSHOT1000))
     {
-        systemConfigMutable()->cpu_overclock = 2; //216MHZ is required for dshot + rc_interpolation + 32K pid loop.
+        //digital protocols drop packets at 32k accorgins to blheli_32 team. constrain them to < 16K pid.
+        gyroConfigMutable()->gyro_sync_denom = 2;
     }
+    //keeop imuf_rate in sync with the gyro.
     gyroConfigMutable()->imuf_rate = constrain(gyroConfigMutable()->gyro_sync_denom - 1, 0, 5);
     #endif
     // Prevent invalid notch cutoff

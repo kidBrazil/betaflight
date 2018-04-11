@@ -49,8 +49,10 @@ void imufEndCalibration(void);
 #define IMUF_DEFAULT_YAW_W  10
 #endif
 
-volatile uint32_t isImufCalibrating;
 
+#define ACC_IMUF9001_ALIGN 1 //CW0_DEG
+#define IMUF_FIRMWARE_VERSION  106
+extern volatile uint16_t imufCurrentVersion;
 typedef struct imufVersion
 {   
     uint32_t hardware;
@@ -181,7 +183,7 @@ typedef enum gyroToBoardCommMode
     GTBCM_GYRO_ONLY_FILTER_F     = 20, //gyro filtered, 3*4 bytes, 4 bytes crc
     GTBCM_GYRO_ACC_FILTER_F      = 32, //gyro filtered, acc filtered, temp, crc
     GTBCM_GYRO_ACC_QUAT_FILTER_F = 48, //gyro filtered, acc filtered, temp, quaternions filtered, crc
-    GTBCM_DEFAULT                = GTBCM_GYRO_ACC_FILTER_F, //default mode
+    GTBCM_DEFAULT                = GTBCM_GYRO_ACC_QUAT_FILTER_F, //default mode
 } gyroToBoardCommMode_t;
 
 typedef enum imufCalibrationSteps
@@ -191,5 +193,9 @@ typedef enum imufCalibrationSteps
     IMUF_DONE_CALIBRATING   = 2
 
 } imufCalibrationSteps_t;
+
+extern volatile imuFrame_t imufQuat;
+volatile uint32_t isImufCalibrating;
+
 
 extern uint32_t getCrcImuf9001(uint32_t* data, uint32_t size);

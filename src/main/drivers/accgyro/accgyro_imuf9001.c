@@ -37,14 +37,16 @@
 #include "drivers/sensor.h"
 #include "drivers/time.h"
 #include "fc/config.h"
+#include "fc/runtime_config.h"
 
 #include "sensors/boardalignment.h"
 
 #include "drivers/system.h"
 
 
-static const uint16_t imufCurrentVersion = 105;
+volatile uint16_t imufCurrentVersion = IMUF_FIRMWARE_VERSION;
 volatile uint32_t isImufCalibrating = 0;
+volatile imuFrame_t imufQuat;
 
 void crcConfig(void)
 {
@@ -148,11 +150,12 @@ int imuf9001Whoami(const gyroDev_t *gyro)
     uint32_t attempt;
     imufCommand_t reply;
 
-    for (attempt = 0; attempt < 3; attempt++)
+    for (attempt = 0; attempt < 10; attempt++)
     {
         if (imuf9001SendReceiveCommand(gyro, IMUF_COMMAND_REPORT_INFO, &reply, NULL))
         {
-            if ((*(imufVersion_t *)&(reply.param1)).firmware < imufCurrentVersion) {
+            imufCurrentVersion = (*(imufVersion_t *)&(reply.param1)).firmware;
+            if (imufCurrentVersion < IMUF_FIRMWARE_VERSION) {
                 //force update
                 if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
                 {
@@ -194,7 +197,7 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
 
     hardwareInitialised = true;
 
-    for (int x=0; x<5; x++)
+    for (int x=0; x<7; x++)
     {
         int returnCheck;
         if (x)
@@ -250,7 +253,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 ) | returnGyroAlignmentForImuf9001();
     rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 ) | (int16_t)boardAlignment()->pitchDegrees;
 
-    for (attempt = 0; attempt < 3; attempt++)
+    for (attempt = 0; attempt < 10; attempt++)
     {
         if(attempt)
         {
@@ -265,6 +268,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
             return;
         }
     }
+    setArmingDisabled(ARMING_DISABLED_NO_GYRO);
 }
 
 bool imufReadAccData(accDev_t *acc) {

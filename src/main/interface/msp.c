@@ -1736,6 +1736,7 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 
     case MSP_ACC_CALIBRATION:
         if (!ARMING_FLAG(ARMED))
+            gyroStartCalibration(false);
             accSetCalibrationCycles(CALIBRATING_ACC_CYCLES);
         break;
 
