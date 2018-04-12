@@ -319,7 +319,7 @@ static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, bool useAcc, quater
 
 STATIC_UNIT_TESTED void imuUpdateEulerAngles(void) {
     quaternionProducts buffer;
-    
+
     if (FLIGHT_MODE(HEADFREE_MODE)) {
         quaternionMultiply(&qOffset, &qAttitude, &qHeadfree);
         quaternionComputeProducts(&qHeadfree, &buffer);
@@ -352,6 +352,12 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 
     const timeDelta_t deltaT = currentTimeUs - previousIMUUpdateTime;
     previousIMUUpdateTime = currentTimeUs;
+
+#ifdef USE_ACC
+    if (sensors(SENSOR_ACC)) {
+        useAcc = true;
+    }
+#endif
 
 #ifdef USE_MAG
     if (sensors(SENSOR_MAG)) {
