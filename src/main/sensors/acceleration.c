@@ -281,7 +281,6 @@ retry:
     case ACC_IMUF9001:
         if (imufSpiAccDetect(dev)) {
             accHardware = ACC_IMUF9001;
-            dev->accAlign = ACC_IMUF9001_ALIGN;
             break;
         }
         FALLTHROUGH;

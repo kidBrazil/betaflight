@@ -159,9 +159,6 @@ static bool isCalibrating(void)
         return true;
     }
 #endif
-#ifdef USE_GYRO_IMUF9001
-    return false;
-#endif
     // Note: compass calibration is handled completely differently, outside of the main loop, see f.CALIBRATE_MAG
 
     return (!accIsCalibrationComplete() && sensors(SENSOR_ACC)) || (!isGyroCalibrationComplete());
