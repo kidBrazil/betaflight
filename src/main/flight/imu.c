@@ -201,68 +201,83 @@ static float imuUseFastGains(void) {
         }
     }
 }
+FAST_CODE void applyVectorError(float ez_ef, quaternion *vError){
+    // Rotate mag error vector back to BF and accumulate
+    vError->x += (2.0f * (qpAttitude.xz + -qpAttitude.wy)) * ez_ef;
+    vError->y += (2.0f * (qpAttitude.yz - -qpAttitude.wx)) * ez_ef;
+    vError->z += (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) * ez_ef;
+}
 
-static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, bool useAcc, quaternion *vAcc, bool useMag, quaternion *vMag, bool useCOG, float courseOverGround) {
-    quaternion vKpKi = VECTOR_INITIALIZE;
-    quaternion vError = VECTOR_INITIALIZE;
-    static quaternion vIntegralFB = VECTOR_INITIALIZE;
-    quaternion qBuff, qDiff;
+FAST_CODE void applyAccError(quaternion *vAcc, quaternion *vError) {
+    quaternionNormalize(vAcc);
+    // Error is sum of cross product between estimated direction and measured direction of gravity
+    vError->x += (vAcc->y * (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) - vAcc->z * (2.0f * (qpAttitude.yz - -qpAttitude.wx)));
+    vError->y += (vAcc->z * (2.0f * (qpAttitude.xz + -qpAttitude.wy)) - vAcc->x * (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy));
+    vError->z += (vAcc->x * (2.0f * (qpAttitude.yz - -qpAttitude.wx)) - vAcc->y * (2.0f * (qpAttitude.xz + -qpAttitude.wy)));
+}
 
+FAST_CODE float calcMagError(quaternion *vMag){
+    quaternionNormalize(vMag);
+    
+    // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
+    // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
+    const float hx = (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) * vMag->x + (2.0f * (qpAttitude.xy + -qpAttitude.wz)) * vMag->y + (2.0f * (qpAttitude.xz - -qpAttitude.wy)) * vMag->z;
+    const float hy = (2.0f * (qpAttitude.xy - -qpAttitude.wz)) * vMag->x + (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.zz) * vMag->y + (2.0f * (qpAttitude.yz + -qpAttitude.wx)) * vMag->z;
+    const float bx = sqrtf(sq(hx) + sq(hy));
 
-    if (useCOG) {
-        // Use raw heading error (from GPS or whatever else)
-        while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
-        while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
+    // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
+    return -(float)(hy * bx);
+}
+FAST_CODE float calcCogError(float courseOverGround){
+    // Use raw heading error (from GPS or whatever else)
+    while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
+    while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
 
-        // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
-        // (Rxx; Ryx) - measured (estimated) heading vector (EF)
-        // (cos(COG), sin(COG)) - reference heading vector (EF)
-        // error is cross product between reference heading and estimated heading (calculated in EF)
-        const float ez_ef = - sin_approx(courseOverGround) * (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) - cos_approx(courseOverGround) * (2.0f * (qpAttitude.xy - -qpAttitude.wz));
+    // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
+    // (Rxx; Ryx) - measured (estimated) heading vector (EF)
+    // (cos(COG), sin(COG)) - reference heading vector (EF)
+    // error is cross product between reference heading and estimated heading (calculated in EF)
+    return -(float)sin_approx(courseOverGround) * (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) - cos_approx(courseOverGround) * (2.0f * (qpAttitude.xy - -qpAttitude.wz));   
+}
 
-        vError.x += (2.0f * (qpAttitude.xz + -qpAttitude.wy)) * ez_ef;
-        vError.y += (2.0f * (qpAttitude.yz - -qpAttitude.wx)) * ez_ef;
-        vError.z += (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) * ez_ef;
-    }
+FAST_CODE void applySensorCorrection(quaternion *vError){
+    (void)(vError);
+#ifdef USE_GPS
+    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 600) {
+        float courseOverGround = 0;        
+        static bool hasInitializedGPSHeading = false;
+        // In case of a fixed-wing aircraft we can use GPS course over ground to correct heading
+        if(STATE(FIXED_WING)) {
+            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+        } else {
+            float tiltDirection = atan2_approx(attitude.values.roll, attitude.values.pitch); // For applying correction to heading based on craft tilt in 2d space
+            courseOverGround = tiltDirection + DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
 
-#ifdef USE_MAG
-    // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
-    // This way magnetic field will only affect heading and wont mess roll/pitch angles
-    if (useMag) {
-        if (compassIsHealthy(vMag)) {
-            quaternionNormalize(vMag);
-
-            // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
-            // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
-            const float hx = (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) * vMag->x + (2.0f * (qpAttitude.xy + -qpAttitude.wz)) * vMag->y + (2.0f * (qpAttitude.xz - -qpAttitude.wy)) * vMag->z;
-            const float hy = (2.0f * (qpAttitude.xy - -qpAttitude.wz)) * vMag->x + (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.zz) * vMag->y + (2.0f * (qpAttitude.yz + -qpAttitude.wx)) * vMag->z;
-            const float bx = sqrtf(sq(hx) + sq(hy));
-
-            // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-            const float ez_ef = -(hy * bx);
-
-            // Rotate mag error vector back to BF and accumulate
-            vError.x += (2.0f * (qpAttitude.xz + -qpAttitude.wy)) * ez_ef;
-            vError.y += (2.0f * (qpAttitude.yz - -qpAttitude.wx)) * ez_ef;
-            vError.z += (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) * ez_ef;
+            if (!hasInitializedGPSHeading && GPS_distanceToHome > 50) { // Initially correct the gps heading, we can deal with gradual corrections later
+                attitude.values.yaw = RADIANS_TO_DECIDEGREES(courseOverGround);
+                hasInitializedGPSHeading = true;
+            }
         }
+        applyVectorError(calcCogError(courseOverGround), vError);        
     }
-#else
-    UNUSED(useMag);
-    UNUSED(vMag);
 #endif
 
-    //debug
-    DEBUG_SET(DEBUG_IMU, DEBUG_IMU_VACCMODULUS, lrintf((quaternionModulus(vAcc)/ acc.dev.acc_1G) * 1000));
-    if (useAcc) {
-        if (accIsHealthy(vAcc)) {
-            quaternionNormalize(vAcc);
-            // Error is sum of cross product between estimated direction and measured direction of gravity
-            vError.x += (vAcc->y * (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) - vAcc->z * (2.0f * (qpAttitude.yz - -qpAttitude.wx)));
-            vError.y += (vAcc->z * (2.0f * (qpAttitude.xz + -qpAttitude.wy)) - vAcc->x * (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy));
-            vError.z += (vAcc->x * (2.0f * (qpAttitude.yz - -qpAttitude.wx)) - vAcc->y * (2.0f * (qpAttitude.xz + -qpAttitude.wy)));
-        }
+
+#ifdef USE_MAG
+    quaternion vMagAverage;
+    if (sensors(SENSOR_MAG) && compassIsHealthy(&vMagAverage)) {
+        // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
+        // This way magnetic field will only affect heading and wont mess roll/pitch angles
+        compassGetAverage(&vMagAverage);        
+        applyVectorError(calcMagError(&vMagAverage), vError);
     }
+#endif
+}
+
+static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, quaternion *vError) {
+    quaternion vKpKi = VECTOR_INITIALIZE;
+    static quaternion vIntegralFB = VECTOR_INITIALIZE;
+    quaternion qBuff, qDiff;
 
     // scale dcm to converge faster (if not armed)
     const float dcmKpGain = imuRuntimeConfig.dcm_kp * imuUseFastGains();
@@ -270,17 +285,17 @@ static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, bool useAcc, quater
 
     // calculate integral feedback
     if (imuRuntimeConfig.dcm_ki > 0.0f) {
-        vIntegralFB.x += dcmKiGain * vError.x * dt;
-        vIntegralFB.y += dcmKiGain * vError.y * dt;
-        vIntegralFB.z += dcmKiGain * vError.z * dt;
+        vIntegralFB.x += dcmKiGain * vError->x * dt;
+        vIntegralFB.y += dcmKiGain * vError->y * dt;
+        vIntegralFB.z += dcmKiGain * vError->z * dt;
     } else {
         quaternionInitVector(&vIntegralFB);
     }
 
     // apply proportional and integral feedback
-    vKpKi.x += dcmKpGain * vError.x + vIntegralFB.x;
-    vKpKi.y += dcmKpGain * vError.y + vIntegralFB.y;
-    vKpKi.z += dcmKpGain * vError.z + vIntegralFB.z;
+    vKpKi.x += dcmKpGain * vError->x + vIntegralFB.x;
+    vKpKi.y += dcmKpGain * vError->y + vIntegralFB.y;
+    vKpKi.z += dcmKpGain * vError->z + vIntegralFB.z;
 
     // vGyro integration
     // PCDM Acta Mech 224, 3091–3109 (2013)
@@ -344,47 +359,11 @@ STATIC_UNIT_TESTED void imuUpdateEulerAngles(void) {
 static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 {
     static timeUs_t previousIMUUpdateTime;
-
-    bool useAcc = false;
-    bool useMag = false;
-    bool useCOG = false;
-    float courseOverGround = 0;
-
     const timeDelta_t deltaT = currentTimeUs - previousIMUUpdateTime;
     previousIMUUpdateTime = currentTimeUs;
 
-#ifdef USE_MAG
-    if (sensors(SENSOR_MAG)) {
-        useMag = true;
-    }
-#endif
-#if defined(USE_GPS)
-    if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 600) {
-        static bool hasInitializedGPSHeading = false;
-        // In case of a fixed-wing aircraft we can use GPS course over ground to correct heading
-        if(STATE(FIXED_WING)) {
-            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-            useCOG = true;
-        } else {
-            float tiltDirection = atan2_approx(attitude.values.roll, attitude.values.pitch); // For applying correction to heading based on craft tilt in 2d space
-            courseOverGround = tiltDirection + DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-
-            if (!hasInitializedGPSHeading && GPS_distanceToHome > 50) { // Initially correct the gps heading, we can deal with gradual corrections later
-                attitude.values.yaw = RADIANS_TO_DECIDEGREES(courseOverGround);
-                hasInitializedGPSHeading = true;
-            }
-
-            useCOG = true; // Tell the IMU to correct attitude.values.yaw with this data
-        }
-    }
-#endif
-
 #if defined(SIMULATOR_BUILD) && defined(SKIP_IMU_CALC)
     UNUSED(imuMahonyAHRSupdate);
-    UNUSED(useAcc);
-    UNUSED(useMag);
-    UNUSED(useCOG);
-    UNUSED(courseOverGround);
 #else
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_IMU_SYNC)
@@ -392,20 +371,27 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     deltaT = imuDeltaT;
 #endif
     // get sensor data
+#ifndef USE_GYRO_IMUF9001
+    quaternion vError = VECTOR_INITIALIZE;
     quaternion vGyroAverage;
     gyroGetAverage(&vGyroAverage);
 
     quaternion vAccAverage;
-    if (!accGetAverage(&vAccAverage)) {
-        useAcc = false;
+    if (accGetAverage(&vAccAverage) && accIsHealthy(&vAccAverage)) {
+        applyAccError(&vAccAverage, &vError);
     }
-
-    quaternion vMagAverage;
-    if (useMag) {
-      compassGetAverage(&vMagAverage);
-    }
-
-    imuMahonyAHRSupdate(deltaT * 1e-6f, &vGyroAverage, useAcc, &vAccAverage, useMag, &vMagAverage, useCOG, courseOverGround);
+    DEBUG_SET(DEBUG_IMU, DEBUG_IMU_VACCMODULUS, lrintf((quaternionModulus(&vAccAverage)/ acc.dev.acc_1G) * 1000));
+    applySensorCorrection(&vError);
+    imuMahonyAHRSupdate(deltaT * 1e-6f, &vGyroAverage, &vError);    
+#else
+    UNUSED(deltaT);
+    UNUSED(imuMahonyAHRSupdate);
+    qAttitude.w = imufQuat.w;
+    qAttitude.x = imufQuat.x;
+    qAttitude.y = imufQuat.y;
+    qAttitude.z = imufQuat.z;
+    applySensorCorrection(&qAttitude);
+#endif
     imuUpdateEulerAngles();
 #endif
 
@@ -416,17 +402,6 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 
 void imuUpdateAttitude(timeUs_t currentTimeUs)
 {
-#ifdef USE_ACC_IMUF9001
-    UNUSED(currentTimeUs);
-    IMU_LOCK;
-    qAttitude.w = imufQuat.w;
-    qAttitude.x = imufQuat.x;
-    qAttitude.y = imufQuat.y;
-    qAttitude.z = imufQuat.z;
-    imuUpdateEulerAngles();
-    IMU_UNLOCK;
-    return;
-#endif //USE_ACC_IMUF9001
     if (sensors(SENSOR_ACC) && acc.isAccelUpdatedAtLeastOnce) {
         IMU_LOCK;
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_IMU_SYNC)

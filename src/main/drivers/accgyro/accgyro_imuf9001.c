@@ -197,7 +197,7 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
 
     hardwareInitialised = true;
 
-    for (int x=0; x<7; x++)
+    for (int x=0; x<10; x++)
     {
         int returnCheck;
         if (x)
@@ -211,7 +211,6 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
             return returnCheck;
         }
     }
-
     return 0;
 }
 
@@ -297,6 +296,7 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
     gyro->initFn = imufSpiGyroInit;
     gyro->readFn = mpuGyroDmaSpiReadStart;
     gyro->scale = 1.0f;
+    gyro->mpuConfiguration.resetFn = resetImuf9001;
     return true;
 }
 

@@ -178,7 +178,6 @@
 
 #define IMUF_BIT_I2C_IF_DIS              (1 << 4)
 
-#define USE_QUAD_MIXER_ONLY
 
 #define USE_ADC
 #define ADC_INSTANCE                   ADC1
