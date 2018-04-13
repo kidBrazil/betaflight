@@ -71,6 +71,9 @@
 #include "sensors/gyro.h"
 #include "sensors/rangefinder.h"
 
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 enum {
     BLACKBOX_MODE_NORMAL = 0,
     BLACKBOX_MODE_MOTOR_TEST,
@@ -1317,7 +1320,16 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("dshot_idle_value", "%d",                motorConfig()->digitalIdleOffsetValue);
         BLACKBOX_PRINT_HEADER_LINE("debug_mode", "%d",                      systemConfig()->debug_mode);
         BLACKBOX_PRINT_HEADER_LINE("features", "%d",                        featureConfig()->enabledFeatures);
-
+        #ifdef USE_GYRO_IMUF9001
+        BLACKBOX_PRINT_HEADER_LINE("IMUF revision", " %s",                  imufCurrentVersion);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF mode", " %s",                      gyroConfig()->imuf_mode);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll q", " %s",                    gyroConfig()->imuf_roll_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch q", " %s",                   gyroConfig()->imuf_pitch_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw q", " %s",                     gyroConfig()->imuf_yaw_q);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF roll w", " %s",                    gyroConfig()->imuf_roll_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch w", " %s",                   gyroConfig()->imuf_pitch_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw w", " %s",                     gyroConfig()->imuf_yaw_w);
+        #endif
         default:
             return true;
     }
@@ -1716,10 +1728,10 @@ void blackboxInit(void)
     // gyro.targetLooptime is 1000 for 1kHz loop, 500 for 2kHz loop etc, gyro.targetLooptime is rounded for short looptimes
     if (gyro.targetLooptime == 31) { // rounded from 31.25us
         blackboxIInterval = 1024;
-    } else if (gyro.targetLooptime == 63) { // rounded from 62.5us
+    } else if (gyro.targetLooptime == 62) { // rounded from 62.5us
         blackboxIInterval = 512;
     } else {
-        blackboxIInterval = (uint16_t)(32 * 1000 / gyro.targetLooptime);
+        blackboxIInterval = (uint16_t)(32000 / gyro.targetLooptime);
     }
     // by default p_denom is 32 and a P-frame is written every 1ms
     // if p_denom is zero then no P-frames are logged
