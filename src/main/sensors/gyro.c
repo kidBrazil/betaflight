@@ -730,7 +730,7 @@ uint16_t returnGyroAlignmentForImuf9001(void)
     }
     else 
     {
-        return (uint16_t)IMU_CUSTOM;
+        return (uint16_t)IMU_CW0;
     }
 }
 
