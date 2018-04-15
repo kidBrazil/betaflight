@@ -22,7 +22,7 @@
 #define UPT_ADDRESS  0x080F0000
 #define MSD_ADDRESS  0x080E0000
 
-#define LED0_PIN                PA8
+#define LED0_PIN                PB7
 
 #define BEEPER                  PC15
 #define BEEPER_INVERTED
