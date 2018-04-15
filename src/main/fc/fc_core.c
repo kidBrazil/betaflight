@@ -334,7 +334,9 @@ void tryArm(void)
         if (isModeActivationConditionPresent(BOXPREARM)) {
             ENABLE_ARMING_FLAG(WAS_ARMED_WITH_PREARM);
         }
-        imuQuaternionHeadfreeOffsetSet();
+        if (sensors(SENSOR_ACC)){
+            imuQuaternionHeadfreeOffsetSet();
+        }
 
         disarmAt = millis() + armingConfig()->auto_disarm_delay * 1000;   // start disarm timeout, will be extended when throttle is nonzero
 
@@ -342,11 +344,14 @@ void tryArm(void)
 
         //beep to indicate arming
 #ifdef USE_GPS
-        if (feature(FEATURE_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5) {
-            beeper(BEEPER_ARMING_GPS_FIX);
-        } else {
+        if(!feature(FEATURE_GPS)) 
+        {
             beeper(BEEPER_ARMING);
-        }
+        } 
+        else if(STATE(GPS_FIX) && gpsSol.numSat >= 5) 
+        {
+            beeper(BEEPER_ARMING_GPS_FIX);
+        } 
 #else
         beeper(BEEPER_ARMING);
 #endif

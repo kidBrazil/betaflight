@@ -201,14 +201,17 @@ static float imuUseFastGains(void) {
         }
     }
 }
-FAST_CODE void applyVectorError(float ez_ef, quaternion *vError){
+#ifndef SITL
+#if defined(USE_MAG) || defined(USE_GPS)
+static void applyVectorError(float ez_ef, quaternion *vError){
     // Rotate mag error vector back to BF and accumulate
     vError->x += (2.0f * (qpAttitude.xz + -qpAttitude.wy)) * ez_ef;
     vError->y += (2.0f * (qpAttitude.yz - -qpAttitude.wx)) * ez_ef;
     vError->z += (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) * ez_ef;
 }
+#endif
 
-FAST_CODE void applyAccError(quaternion *vAcc, quaternion *vError) {
+static void applyAccError(quaternion *vAcc, quaternion *vError) {
     quaternionNormalize(vAcc);
     // Error is sum of cross product between estimated direction and measured direction of gravity
     vError->x += (vAcc->y * (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.yy) - vAcc->z * (2.0f * (qpAttitude.yz - -qpAttitude.wx)));
@@ -216,63 +219,58 @@ FAST_CODE void applyAccError(quaternion *vAcc, quaternion *vError) {
     vError->z += (vAcc->x * (2.0f * (qpAttitude.yz - -qpAttitude.wx)) - vAcc->y * (2.0f * (qpAttitude.xz + -qpAttitude.wy)));
 }
 
-FAST_CODE float calcMagError(quaternion *vMag){
-    quaternionNormalize(vMag);
-    
-    // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
-    // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
-    const float hx = (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) * vMag->x + (2.0f * (qpAttitude.xy + -qpAttitude.wz)) * vMag->y + (2.0f * (qpAttitude.xz - -qpAttitude.wy)) * vMag->z;
-    const float hy = (2.0f * (qpAttitude.xy - -qpAttitude.wz)) * vMag->x + (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.zz) * vMag->y + (2.0f * (qpAttitude.yz + -qpAttitude.wx)) * vMag->z;
-    const float bx = sqrtf(sq(hx) + sq(hy));
-
-    // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
-    return -(float)(hy * bx);
-}
-FAST_CODE float calcCogError(float courseOverGround){
-    // Use raw heading error (from GPS or whatever else)
-    while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
-    while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
-
-    // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
-    // (Rxx; Ryx) - measured (estimated) heading vector (EF)
-    // (cos(COG), sin(COG)) - reference heading vector (EF)
-    // error is cross product between reference heading and estimated heading (calculated in EF)
-    return -(float)sin_approx(courseOverGround) * (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) - cos_approx(courseOverGround) * (2.0f * (qpAttitude.xy - -qpAttitude.wz));   
-}
-
-FAST_CODE void applySensorCorrection(quaternion *vError){
-    (void)(vError);
+static void applySensorCorrection(quaternion *vError){
+#if !defined(USE_MAG) && !defined(USE_GPS)
+    UNUSED(vError);
+#endif
 #ifdef USE_GPS
     if (sensors(SENSOR_GPS) && STATE(GPS_FIX) && gpsSol.numSat >= 5 && gpsSol.groundSpeed >= 600) {
-        float courseOverGround = 0;        
+        float courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);        
         static bool hasInitializedGPSHeading = false;
         // In case of a fixed-wing aircraft we can use GPS course over ground to correct heading
-        if(STATE(FIXED_WING)) {
-            courseOverGround = DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
-        } else {
+        if(!STATE(FIXED_WING)) 
+        {
             float tiltDirection = atan2_approx(attitude.values.roll, attitude.values.pitch); // For applying correction to heading based on craft tilt in 2d space
-            courseOverGround = tiltDirection + DECIDEGREES_TO_RADIANS(gpsSol.groundCourse);
+            courseOverGround += tiltDirection;
 
             if (!hasInitializedGPSHeading && GPS_distanceToHome > 50) { // Initially correct the gps heading, we can deal with gradual corrections later
                 attitude.values.yaw = RADIANS_TO_DECIDEGREES(courseOverGround);
                 hasInitializedGPSHeading = true;
             }
         }
-        applyVectorError(calcCogError(courseOverGround), vError);        
+        // Use raw heading error (from GPS or whatever else)
+        while (courseOverGround >  M_PIf) courseOverGround -= (2.0f * M_PIf);
+        while (courseOverGround < -M_PIf) courseOverGround += (2.0f * M_PIf);
+
+        // William Premerlani and Paul Bizard, Direction Cosine Matrix IMU - Eqn. 22-23
+        // (Rxx; Ryx) - measured (estimated) heading vector (EF)
+        // (cos(COG), sin(COG)) - reference heading vector (EF)
+        // error is cross product between reference heading and estimated heading (calculated in EF)
+        courseOverGround = -(float)sin_approx(courseOverGround) * (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) - cos_approx(courseOverGround) * (2.0f * (qpAttitude.xy - -qpAttitude.wz));   
+        applyVectorError(courseOverGround, vError);        
     }
 #endif
-
 
 #ifdef USE_MAG
     quaternion vMagAverage;
     if (sensors(SENSOR_MAG) && compassIsHealthy(&vMagAverage)) {
         // For magnetometer correction we make an assumption that magnetic field is perpendicular to gravity (ignore Z-component in EF).
         // This way magnetic field will only affect heading and wont mess roll/pitch angles
-        compassGetAverage(&vMagAverage);        
-        applyVectorError(calcMagError(&vMagAverage), vError);
+        compassGetAverage(&vMagAverage); 
+        quaternionNormalize(&vMagAverage);
+    
+        // (hx; hy; 0) - measured mag field vector in EF (assuming Z-component is zero)
+        // (bx; 0; 0) - reference mag field vector heading due North in EF (assuming Z-component is zero)
+        const float hx = (1.0f - 2.0f * qpAttitude.yy - 2.0f * qpAttitude.zz) * vMagAverage.x + (2.0f * (qpAttitude.xy + -qpAttitude.wz)) * vMagAverage.y + (2.0f * (qpAttitude.xz - -qpAttitude.wy)) * vMagAverage.z;
+        const float hy = (2.0f * (qpAttitude.xy - -qpAttitude.wz)) * vMagAverage.x + (1.0f - 2.0f * qpAttitude.xx - 2.0f * qpAttitude.zz) * vMagAverage.y + (2.0f * (qpAttitude.yz + -qpAttitude.wx)) * vMagAverage.z;
+        const float bx = sqrtf(sq(hx) + sq(hy));
+
+        // magnetometer error is cross product between estimated magnetic north and measured magnetic north (calculated in EF)
+        applyVectorError(-(float)(hy * bx), vError);
     }
 #endif
 }
+#endif
 
 static void imuMahonyAHRSupdate(float dt, quaternion *vGyro, quaternion *vError) {
     quaternion vKpKi = VECTOR_INITIALIZE;
@@ -374,23 +372,25 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
 #ifndef USE_GYRO_IMUF9001
     quaternion vError = VECTOR_INITIALIZE;
     quaternion vGyroAverage;
-    gyroGetAverage(&vGyroAverage);
-
     quaternion vAccAverage;
-    if (accGetAverage(&vAccAverage) && accIsHealthy(&vAccAverage)) {
-        applyAccError(&vAccAverage, &vError);
-    }
+    gyroGetAverage(&vGyroAverage);
+    accGetAverage(&vAccAverage);
     DEBUG_SET(DEBUG_IMU, DEBUG_IMU_VACCMODULUS, lrintf((quaternionModulus(&vAccAverage)/ acc.dev.acc_1G) * 1000));
+    if (accIsHealthy(&vAccAverage)) {
+         applyAccError(&vAccAverage, &vError);
+    }
     applySensorCorrection(&vError);
-    imuMahonyAHRSupdate(deltaT * 1e-6f, &vGyroAverage, &vError);    
+    imuMahonyAHRSupdate(deltaT * 1e-6f, &vGyroAverage, &vError);
 #else
     UNUSED(deltaT);
+    UNUSED(applyAccError);
     UNUSED(imuMahonyAHRSupdate);
     qAttitude.w = imufQuat.w;
     qAttitude.x = imufQuat.x;
     qAttitude.y = imufQuat.y;
     qAttitude.z = imufQuat.z;
     applySensorCorrection(&qAttitude);
+    quaternionComputeProducts(&qAttitude, &qpAttitude);    
 #endif
     imuUpdateEulerAngles();
 #endif
@@ -477,7 +477,7 @@ void imuSetHasNewData(uint32_t dt) {
 
 // HEADFREE HEADADJ allowed for tilt below 37°
 bool imuQuaternionHeadfreeOffsetSet(void) {
-      if ((ABS(getCosTiltAngle()) > 0.8f)) {
+    if ((ABS(getCosTiltAngle()) > 0.8f)) {
         const float yawHalf = atan2_approx((+2.0f * (qpAttitude.wz + qpAttitude.xy)), (+1.0f - 2.0f * (qpAttitude.yy + qpAttitude.zz))) / 2.0f;
         qOffset.w = cos_approx(yawHalf);
         qOffset.x = 0;

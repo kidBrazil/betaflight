@@ -22,6 +22,10 @@
 #include "common/maths.h"
 #include "pg/pg.h"
 
+#ifndef DEFAULT_ATTITUDE_UPDATE_INTERVAL
+#define DEFAULT_ATTITUDE_UPDATE_INTERVAL 200
+#endif //DEFAULT_ATTITUDE_UPDATE_INTERVAL 200
+
 // Exported symbols
 extern uint32_t accTimeSum;
 extern int accSumCount;
