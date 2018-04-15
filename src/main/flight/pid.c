@@ -91,7 +91,7 @@ void resetPidProfile(pidProfile_t *pidProfile)
         .pid = {
             [PID_ROLL] =  { 40, 40, 20 },
             [PID_PITCH] = { 58, 50, 22 },
-            [PID_YAW] =   { 70, 45, 8 },
+            [PID_YAW] =   { 55, 45, 5 },
             [PID_ALT] =   { 50, 0, 0 },
             [PID_POS] =   { 15, 0, 0 },     // POSHOLD_P * 100, POSHOLD_I * 100,
             [PID_POSR] =  { 34, 14, 53 },   // POSHOLD_RATE_P * 10, POSHOLD_RATE_I * 100, POSHOLD_RATE_D * 1000,
@@ -180,7 +180,7 @@ typedef union dtermFilterLpf_u {
 
 void pidInitFilters(const pidProfile_t *pidProfile)
 {
-    BUILD_BUG_ON(FD_YAW != 2); // only setting up Dterm filters on roll and pitch axes, so ensure yaw axis is 2
+    // BUILD_BUG_ON(FD_YAW != 2); // only setting up Dterm filters on roll and pitch axes, so ensure yaw axis is 2
 
     if (targetPidLooptime == 0) {
         // no looptime set, so set all the filters to null
@@ -189,7 +189,7 @@ void pidInitFilters(const pidProfile_t *pidProfile)
         return;
     }
 
-    const uint32_t pidFrequencyNyquist = (1.0f / dT) / 2; // No rounding needed
+        const uint32_t pidFrequencyNyquist = (1.0f / dT) / 2; // No rounding needed
 
     uint16_t dTermNotchHz;
     if (pidProfile->dterm_notch_hz <= pidFrequencyNyquist) {
@@ -206,43 +206,40 @@ void pidInitFilters(const pidProfile_t *pidProfile)
         static biquadFilter_t biquadFilterNotch[3];
         dtermNotchFilterApplyFn = (filterApplyFnPtr)biquadFilterApply;
         const float notchQ = filterGetNotchQ(dTermNotchHz, pidProfile->dterm_notch_cutoff);
-        for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
+        for (int axis = FD_ROLL; axis <= FD_YAW; axis++) {
             dtermFilterNotch[axis] = &biquadFilterNotch[axis];
             biquadFilterInit(dtermFilterNotch[axis], dTermNotchHz, targetPidLooptime, notchQ, FILTER_NOTCH);
-        }
+        }    
     } else {
         dtermNotchFilterApplyFn = nullFilterApply;
     }
 
     static dtermFilterLpf_t dtermFilterLpfUnion;
-    if (pidProfile->dterm_lpf_hz == 0 || pidProfile->dterm_lpf_hz > pidFrequencyNyquist) {
-        dtermLpfApplyFn = nullFilterApply;
-    } else {
-        switch (pidProfile->dterm_filter_type) {
-        default:
-            dtermLpfApplyFn = nullFilterApply;
-            break;
-        case FILTER_PT1:
-            dtermLpfApplyFn = (filterApplyFnPtr)pt1FilterApply;
-            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-                dtermFilterLpf[axis] = &dtermFilterLpfUnion.pt1Filter[axis];
-                pt1FilterInit(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, dT);
+    dtermLpfApplyFn = nullFilterApply;
+    if (pidProfile->dterm_lpf_hz && pidProfile->dterm_lpf_hz <= pidFrequencyNyquist)
+    {
+        for (int axis = FD_ROLL; axis <= FD_YAW; axis++)
+        {
+            switch (pidProfile->dterm_filter_type)
+            {
+            case FILTER_PT1:
+                    dtermLpfApplyFn = (filterApplyFnPtr)pt1FilterApply;
+                    dtermFilterLpf[axis] = &dtermFilterLpfUnion.pt1Filter[axis];
+                    pt1FilterInit(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, dT);
+                break;
+            case FILTER_FIR:
+                    dtermLpfApplyFn = (filterApplyFnPtr)firFilterDenoiseUpdate;
+                    dtermFilterLpf[axis] = &dtermFilterLpfUnion.denoisingFilter[axis];
+                    firFilterDenoiseInit(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, targetPidLooptime);
+                break;
+            case FILTER_BIQUAD:
+                    dtermLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
+                    dtermFilterLpf[axis] = &dtermFilterLpfUnion.biquadFilter[axis];
+                    biquadFilterInitLPF(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, targetPidLooptime);
+                break;
+            default:
+                break;
             }
-            break;
-        case FILTER_BIQUAD:
-            dtermLpfApplyFn = (filterApplyFnPtr)biquadFilterApply;
-            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-                dtermFilterLpf[axis] = &dtermFilterLpfUnion.biquadFilter[axis];
-                biquadFilterInitLPF(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, targetPidLooptime);
-            }
-            break;
-        case FILTER_FIR:
-            dtermLpfApplyFn = (filterApplyFnPtr)firFilterDenoiseUpdate;
-            for (int axis = FD_ROLL; axis <= FD_PITCH; axis++) {
-                dtermFilterLpf[axis] = &dtermFilterLpfUnion.denoisingFilter[axis];
-                firFilterDenoiseInit(dtermFilterLpf[axis], pidProfile->dterm_lpf_hz, targetPidLooptime);
-            }
-            break;
         }
     }
 }
