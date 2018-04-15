@@ -54,10 +54,12 @@
 #include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #ifdef USE_GYRO_IMUF9001
 #include "drivers/accgyro/accgyro_imuf9001.h"
+#include "drivers/time.h"
 #endif //USE_GYRO_IMUF9001
 #include "drivers/accgyro/gyro_sync.h"
 #include "drivers/bus_spi.h"
 #include "drivers/io.h"
+#include "drivers/time.h"
 
 #include "fc/config.h"
 #include "fc/runtime_config.h"
@@ -98,6 +100,9 @@ typedef struct gyroCalibration_s {
 } gyroCalibration_t;
 
 bool firstArmingCalibrationWasStarted = false;
+#ifdef USE_GYRO_IMUF9001
+uint32_t lastImufExtiTime = 0;
+#endif
 
 typedef union gyroSoftFilter_u {
     biquadFilter_t gyroFilterLpfState[XYZ_AXIS_COUNT];
@@ -174,29 +179,29 @@ PG_REGISTER_WITH_RESET_TEMPLATE(gyroConfig_t, gyroConfig, PG_GYRO_CONFIG, 1);
 PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_align = ALIGN_DEFAULT,
     .gyroMovementCalibrationThreshold = 48,
-    .gyro_sync_denom = GYRO_SYNC_DENOM_DEFAULT,
-    .gyro_lpf = GYRO_LPF_256HZ,
+    .gyro_sync_denom = 1,
+    .gyro_lpf = GYRO_LPF_NONE,
     .gyro_soft_lpf_type = FILTER_BIQUAD,
-    .gyro_soft_lpf_hz = 90,
+    .gyro_soft_lpf_hz = 0,
     .gyro_high_fsr = false,
-    .gyro_use_32khz = false,
+    .gyro_use_32khz = true,
     .gyro_to_use = 0,
     .gyro_soft_notch_hz_1 = 0,
     .gyro_soft_notch_cutoff_1 = 0,
     .gyro_soft_notch_hz_2 = 0,
     .gyro_soft_notch_cutoff_2 = 0,
-    .checkOverflow = GYRO_OVERFLOW_CHECK_ALL_AXES,
+    .checkOverflow = GYRO_OVERFLOW_CHECK_YAW,
     .imuf_mode = 32,
-    .imuf_pitch_q = HELIO_PROFILE_PITCH_Q,
-    .imuf_pitch_r = 88,
-    .imuf_roll_q = HELIO_PROFILE_ROLL_Q,
-    .imuf_roll_r = 88,
-    .imuf_yaw_q = HELIO_PROFILE_YAW_Q,
-    .imuf_yaw_r = 88,
+    .imuf_rate = IMUF_RATE_32K,
+    .imuf_pitch_q = IMUF_DEFAULT_PITCH_Q,
+    .imuf_pitch_w = IMUF_DEFAULT_PITCH_W,
+    .imuf_roll_q = IMUF_DEFAULT_ROLL_Q,
+    .imuf_roll_w = IMUF_DEFAULT_ROLL_W,
+    .imuf_yaw_q = IMUF_DEFAULT_YAW_Q,
+    .imuf_yaw_w = IMUF_DEFAULT_YAW_W,
     .imuf_pitch_lpf_cutoff_hz = 150.0f,
     .imuf_roll_lpf_cutoff_hz = 150.0f,
     .imuf_yaw_lpf_cutoff_hz = 150.0f,
-    .imuf_dyn_gain = HELIO_PROFILE_DYN_GAIN,
     .gyro_offset_yaw = 0,
 );
 #else
@@ -214,7 +219,7 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .gyro_soft_notch_cutoff_1 = 0,
     .gyro_soft_notch_hz_2 = 0,
     .gyro_soft_notch_cutoff_2 = 0,
-    .checkOverflow = GYRO_OVERFLOW_CHECK_NONE,
+    .checkOverflow = GYRO_OVERFLOW_CHECK_YAW,
     .gyro_soft_lpf_hz_2 = 0,
     .gyro_filter_q = 400,
     .gyro_filter_r = 88,
@@ -484,13 +489,7 @@ static bool gyroInitSensor(gyroSensor_t *gyroSensor)
 bool gyroInit(void)
 {
 #ifdef USE_GYRO_OVERFLOW_CHECK
-    if (gyroConfig()->checkOverflow == GYRO_OVERFLOW_CHECK_YAW) {
-        overflowAxisMask = GYRO_OVERFLOW_Z;
-    } else if (gyroConfig()->checkOverflow == GYRO_OVERFLOW_CHECK_ALL_AXES) {
-        overflowAxisMask = GYRO_OVERFLOW_X | GYRO_OVERFLOW_Y | GYRO_OVERFLOW_Z;
-    } else {
-        overflowAxisMask = 0;
-    }
+    overflowAxisMask = gyroConfig()->checkOverflow;
 #endif
 
     switch (debugMode) {
@@ -709,6 +708,30 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
 }
 
 #ifdef USE_GYRO_IMUF9001
+
+bool gyroIsSane(void)
+{
+    if (micros() - lastImufExtiTime > 1000)
+    {
+        //no EXTI in 1000 us, that's bad
+        return false;
+    }
+
+    //0.0f on all three during an arm check is next to impossible
+    if( !isGyroSensorCalibrationComplete(&gyroSensor1) )
+    {
+        return false;
+    }
+
+    //100 CRC errors is a lot
+    if (imufCrcErrorCount > 100)
+    {
+        imufCrcErrorCount = 0;
+        return false;
+    }
+
+    return true;
+}
 
 uint16_t returnGyroAlignmentForImuf9001(void)
 {
