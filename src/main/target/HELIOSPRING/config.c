@@ -37,7 +37,7 @@
 
 void targetConfiguration(void) {
     voltageSensorADCConfigMutable(VOLTAGE_SENSOR_ADC_VBAT)->vbatscale = VBAT_SCALE;
-    armingConfigMutable()->gyro_cal_on_first_arm = true;
+    // armingConfigMutable()->gyro_cal_on_first_arm = true;
     rxConfigMutable()->rcInterpolation         = RC_SMOOTHING_MANUAL;
     rxConfigMutable()->rcInterpolationInterval = 14;
     rxConfigMutable()->rcInterpolationChannels = RC_INTERP_RPYT;
