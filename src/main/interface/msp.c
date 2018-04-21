@@ -1191,14 +1191,12 @@ static bool mspProcessOutCommand(uint8_t cmdMSP, sbuf_t *dst)
 #ifdef USE_GYRO_IMUF9001
     case MSP_IMUF_CONFIG:
         sbufWriteU16(dst, gyroConfig()->imuf_mode);
-        sbufWriteU16(dst, gyroConfig()->imuf_pitch_q);
-        sbufWriteU16(dst, gyroConfig()->imuf_pitch_w);
         sbufWriteU16(dst, gyroConfig()->imuf_roll_q);
-        sbufWriteU16(dst, gyroConfig()->imuf_roll_w);
+        sbufWriteU16(dst, gyroConfig()->imuf_pitch_q);
         sbufWriteU16(dst, gyroConfig()->imuf_yaw_q);
-        sbufWriteU16(dst, gyroConfig()->imuf_yaw_w);
-        sbufWriteU16(dst, gyroConfig()->imuf_pitch_lpf_cutoff_hz);
+        sbufWriteU16(dst, gyroConfig()->imuf_w);
         sbufWriteU16(dst, gyroConfig()->imuf_roll_lpf_cutoff_hz);
+        sbufWriteU16(dst, gyroConfig()->imuf_pitch_lpf_cutoff_hz);
         sbufWriteU16(dst, gyroConfig()->imuf_yaw_lpf_cutoff_hz);
         break;
 #endif
@@ -1687,14 +1685,12 @@ static mspResult_e mspProcessInCommand(uint8_t cmdMSP, sbuf_t *src)
 #ifdef USE_GYRO_IMUF9001
     case MSP_SET_IMUF_CONFIG :
         gyroConfigMutable()->imuf_mode = sbufReadU16(src);
-        gyroConfigMutable()->imuf_pitch_q = sbufReadU16(src);
-        gyroConfigMutable()->imuf_pitch_w = sbufReadU16(src);
         gyroConfigMutable()->imuf_roll_q = sbufReadU16(src);
-        gyroConfigMutable()->imuf_roll_w = sbufReadU16(src);
+        gyroConfigMutable()->imuf_pitch_q = sbufReadU16(src);
         gyroConfigMutable()->imuf_yaw_q = sbufReadU16(src);
-        gyroConfigMutable()->imuf_yaw_w = sbufReadU16(src);
-        gyroConfigMutable()->imuf_pitch_lpf_cutoff_hz = sbufReadU16(src);
+        gyroConfigMutable()->imuf_w = sbufReadU16(src);
         gyroConfigMutable()->imuf_roll_lpf_cutoff_hz = sbufReadU16(src);
+        gyroConfigMutable()->imuf_pitch_lpf_cutoff_hz = sbufReadU16(src);
         gyroConfigMutable()->imuf_yaw_lpf_cutoff_hz = sbufReadU16(src);
         break;
 #endif

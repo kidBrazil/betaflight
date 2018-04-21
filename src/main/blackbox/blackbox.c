@@ -1326,9 +1326,7 @@ static bool blackboxWriteSysinfo(void)
         BLACKBOX_PRINT_HEADER_LINE("IMUF roll q", " %d",                    gyroConfig()->imuf_roll_q);
         BLACKBOX_PRINT_HEADER_LINE("IMUF pitch q", " %d",                   gyroConfig()->imuf_pitch_q);
         BLACKBOX_PRINT_HEADER_LINE("IMUF yaw q", " %d",                     gyroConfig()->imuf_yaw_q);
-        BLACKBOX_PRINT_HEADER_LINE("IMUF roll w", " %d",                    gyroConfig()->imuf_roll_w);
-        BLACKBOX_PRINT_HEADER_LINE("IMUF pitch w", " %d",                   gyroConfig()->imuf_pitch_w);
-        BLACKBOX_PRINT_HEADER_LINE("IMUF yaw w", " %d",                     gyroConfig()->imuf_yaw_w);
+        BLACKBOX_PRINT_HEADER_LINE("IMUF w", " %d",                         gyroConfig()->imuf_w);
         #endif
         default:
             return true;

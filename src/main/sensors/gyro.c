@@ -194,14 +194,12 @@ PG_RESET_TEMPLATE(gyroConfig_t, gyroConfig,
     .checkOverflow = GYRO_OVERFLOW_CHECK_YAW,
     .imuf_mode = GTBCM_DEFAULT,
     .imuf_rate = IMUF_RATE_16K,
-    .imuf_pitch_q = IMUF_DEFAULT_PITCH_Q,
-    .imuf_pitch_w = IMUF_DEFAULT_PITCH_W,
     .imuf_roll_q = IMUF_DEFAULT_ROLL_Q,
-    .imuf_roll_w = IMUF_DEFAULT_ROLL_W,
+    .imuf_pitch_q = IMUF_DEFAULT_PITCH_Q,
     .imuf_yaw_q = IMUF_DEFAULT_YAW_Q,
-    .imuf_yaw_w = IMUF_DEFAULT_YAW_W,
-    .imuf_pitch_lpf_cutoff_hz = 150.0f,
+    .imuf_w = IMUF_DEFAULT_W,
     .imuf_roll_lpf_cutoff_hz = 150.0f,
+    .imuf_pitch_lpf_cutoff_hz = 150.0f,
     .imuf_yaw_lpf_cutoff_hz = 150.0f,
     .gyro_offset_yaw = 0,
 );
@@ -711,11 +709,11 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
 
 bool gyroIsSane(void)
 {
-    if (micros() - lastImufExtiTime > 1000)
-    {
-        //no EXTI in 1000 us, that's bad
-        return false;
-    }
+    // if (micros() - lastImufExtiTime > 2000)
+    // {
+    //     //no EXTI in 1000 us, that's bad
+    //     return false;
+    // }
 
     //100 CRC errors is a lot
     if (imufCrcErrorCount > 100)

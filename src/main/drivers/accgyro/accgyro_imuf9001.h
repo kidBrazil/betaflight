@@ -50,7 +50,7 @@ void imufEndCalibration(void);
 #endif
 
 
-#define IMUF_FIRMWARE_VERSION  106
+#define IMUF_FIRMWARE_VERSION  107
 extern volatile uint16_t imufCurrentVersion;
 typedef struct imufVersion
 {   
