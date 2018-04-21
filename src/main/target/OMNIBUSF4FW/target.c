@@ -38,7 +38,7 @@ const timerHardware_t timerHardware[USABLE_TIMER_CHANNEL_COUNT] = {
     // Other functions
     DEF_TIM(TIM4,  CH1, PB6,  TIM_USE_LED,   0, 0), // D(1,0)
     DEF_TIM(TIM10, CH1, PB8,  TIM_USE_PPM,   0, 0), // PPM
-    DEF_TIM(TIM11, CH1, PB9,  TIM_USE_NONE,  0, 0), // CAM_CTL
+    DEF_TIM(TIM11, CH1, PB9,  TIM_USE_ANY,  0, 0), // CAM_CTL
 
     // Spare pins and backdoor timer
     DEF_TIM(TIM8,  CH1, PC6,  TIM_USE_NONE,  0, 0), // UART6_TX
