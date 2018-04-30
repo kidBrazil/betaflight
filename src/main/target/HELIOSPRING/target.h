@@ -197,4 +197,5 @@
 #define IMUF_DEFAULT_PITCH_Q  5000
 #define IMUF_DEFAULT_ROLL_Q   5000
 #define IMUF_DEFAULT_YAW_Q    3500
-#define IMUF_DEFAULT_W        28
+#define IMUF_DEFAULT_W        160
+#define IMUF_DEFAULT_LPF_HZ   240.0f
