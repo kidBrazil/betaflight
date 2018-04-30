@@ -292,10 +292,18 @@ void init(void)
 {
 #ifdef USE_ITCM_RAM
     /* Load functions into ITCM RAM */
-    extern unsigned char tcm_code_start;
-    extern unsigned char tcm_code_end;
-    extern unsigned char tcm_code;
-    memcpy(&tcm_code_start, &tcm_code, (int)(&tcm_code_end - &tcm_code_start));
+    extern uint8_t tcm_code_start;
+    extern uint8_t tcm_code_end;
+    extern uint8_t tcm_code;
+    memcpy(&tcm_code_start, &tcm_code, (size_t) (&tcm_code_end - &tcm_code_start));
+#endif
+
+#ifdef USE_FAST_RAM
+    /* Load FAST_RAM_INITIALIZED variable intializers into FAST RAM */
+    extern uint8_t _sfastram_data;
+    extern uint8_t _efastram_data;
+    extern uint8_t _sfastram_idata;
+    memcpy(&_sfastram_data, &_sfastram_idata, (size_t) (&_efastram_data - &_sfastram_data));
 #endif
 
 #ifdef USE_HAL_DRIVER
@@ -549,13 +557,22 @@ void init(void)
         setArmingDisabled(ARMING_DISABLED_NO_GYRO);
     }
 
+#ifdef USE_GYRO_IMUF9001
+    if(!gyroIsSane())
+    {
+        setArmingDisabled(ARMING_DISABLED_NO_GYRO);
+    }
+#endif
+
     systemState |= SYSTEM_STATE_SENSORS_READY;
 
     // gyro.targetLooptime set in sensorsAutodetect(),
     // so we are ready to call validateAndFixGyroConfig(), pidInit(), and setAccelerationFilter()
     validateAndFixGyroConfig();
     pidInit(currentPidProfile);
-    accInitFilters();
+    if (sensors(SENSOR_ACC)){
+        accInitFilters();
+    }
 
 #ifdef USE_SERVOS
     servosInit();

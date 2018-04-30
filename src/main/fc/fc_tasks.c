@@ -38,6 +38,13 @@
 #include "drivers/stack_check.h"
 #include "drivers/transponder_ir.h"
 #include "drivers/vtx_common.h"
+#ifdef USB_CDC_HID
+//TODO: Make it platform independent in the future
+#include "vcpf4/usbd_cdc_vcp.h"
+#include "usbd_hid_core.h"
+//TODO: Nicer way to handle this...
+#undef MIN
+#endif
 
 #include "fc/config.h"
 #include "fc/fc_core.h"
@@ -84,6 +91,12 @@
 #include "scheduler/scheduler.h"
 
 #include "telemetry/telemetry.h"
+
+#ifdef USE_USB_CDC_HID
+//TODO: Make it platform independent in the future
+#include "vcpf4/usbd_cdc_vcp.h"
+#include "usbd_hid_core.h"
+#endif
 
 #ifdef USE_BST
 void taskBstMasterProcess(timeUs_t currentTimeUs);
@@ -136,8 +149,15 @@ static void taskUpdateRxMain(timeUs_t currentTimeUs)
     if (!processRx(currentTimeUs)) {
         return;
     }
-
-    isRXDataNew = true;
+#ifdef USE_USB_CDC_HID
+    if (!ARMING_FLAG(ARMED)) {
+        int8_t report[8];
+        for (int i = 0; i < 8; i++) {
+	        	report[i] = scaleRange(constrain(rcData[i], 1000, 2000), 1000, 2000, -127, 127);
+        }
+        USBD_HID_SendReport(&USB_OTG_dev, (uint8_t*)report, sizeof(report));
+    }
+#endif
 
 #if !defined(USE_ALT_HOLD)
     // updateRcCommands sets rcCommand, which is needed by updateAltHoldState and updateSonarAltHoldState
@@ -247,7 +267,7 @@ void fcTasksInit(void)
 
     if (sensors(SENSOR_ACC)) {
         setTaskEnabled(TASK_ACCEL, true);
-        rescheduleTask(TASK_ACCEL, acc.accSamplingInterval);
+        rescheduleTask(TASK_ACCEL, DEFAULT_ACC_SAMPLE_INTERVAL);
         setTaskEnabled(TASK_ATTITUDE, true);
     }
 
@@ -411,15 +431,15 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_ACCEL] = {
         .taskName = "ACC",
         .taskFunc = taskUpdateAccelerometer,
-        .desiredPeriod = TASK_PERIOD_HZ(1000),      // 1000Hz, every 1ms
+        .desiredPeriod = TASK_PERIOD_HZ(DEFAULT_ACC_SAMPLE_INTERVAL),      // 1000Hz, every 1ms
         .staticPriority = TASK_PRIORITY_MEDIUM,
     },
 
     [TASK_ATTITUDE] = {
         .taskName = "ATTITUDE",
         .taskFunc = imuUpdateAttitude,
-        .desiredPeriod = TASK_PERIOD_HZ(100),
-        .staticPriority = TASK_PRIORITY_MEDIUM,
+        .desiredPeriod = TASK_PERIOD_HZ(DEFAULT_ATTITUDE_UPDATE_INTERVAL),
+        .staticPriority = TASK_PRIORITY_HIGH,
     },
 
     [TASK_RX] = {

@@ -55,6 +55,9 @@ extern uint8_t __config_end;
 #include "config/feature.h"
 
 #include "drivers/accgyro/accgyro.h"
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
 #include "drivers/adc.h"
 #include "drivers/buf_writer.h"
 #include "drivers/bus_spi.h"
@@ -184,7 +187,7 @@ static const char * const featureNames[] = {
     "RANGEFINDER", "TELEMETRY", "", "3D", "RX_PARALLEL_PWM",
     "RX_MSP", "RSSI_ADC", "LED_STRIP", "DISPLAY", "OSD",
     "", "CHANNEL_FORWARDING", "TRANSPONDER", "AIRMODE",
-    "", "", "RX_SPI", "SOFTSPI", "ESC_SENSOR", "ANTI_GRAVITY", "DYNAMIC_FILTER", NULL
+    "", "", "RX_SPI", "SOFTSPI", "ESC_SENSOR", "ANTI_GRAVITY", "DYNAMIC_FILTER", "LEGACY_SA_SUPPORT", NULL
 };
 
 // sync this with rxFailsafeChannelMode_e
@@ -379,25 +382,30 @@ static void printValuePointer(const clivalue_t *var, const void *valuePointer, b
     }
 }
 
-static bool valuePtrEqualsDefault(uint8_t type, const void *ptr, const void *ptrDefault)
-{
-    bool result = false;
-    switch (type & VALUE_TYPE_MASK) {
-    case VAR_UINT8:
-        result = *(uint8_t *)ptr == *(uint8_t *)ptrDefault;
-        break;
+static bool valuePtrEqualsDefault(const clivalue_t *var, const void *ptr, const void *ptrDefault) {
+    bool result = true;
+    int elementCount = 1;
 
-    case VAR_INT8:
-        result = *(int8_t *)ptr == *(int8_t *)ptrDefault;
-        break;
-
-    case VAR_UINT16:
-    case VAR_INT16:
-        result = *(int16_t *)ptr == *(int16_t *)ptrDefault;
-        break;
+    if ((var->type & VALUE_MODE_MASK) == MODE_ARRAY) {
+        elementCount = var->config.array.length;
     }
+    for (int i = 0; i < elementCount; i++) {
+        switch (var->type & VALUE_TYPE_MASK) {
+        case VAR_UINT8:
+            result = result && ((uint8_t *)ptr)[i] == ((uint8_t *)ptrDefault)[i];
+            break;
 
-    return result;
+        case VAR_INT8:
+            result = result && ((int8_t *)ptr)[i] == ((int8_t *)ptrDefault)[i];
+            break;
+
+        case VAR_UINT16:
+        case VAR_INT16:
+            result = result && ((int16_t *)ptr)[i] == ((int16_t *)ptrDefault)[i];
+            break;
+        }
+    }
+    return (result);
 }
 
 static uint16_t getValueOffset(const clivalue_t *value)
@@ -438,7 +446,7 @@ static void dumpPgValue(const clivalue_t *value, uint8_t dumpMask)
     const char *format = "set %s = ";
     const char *defaultFormat = "#set %s = ";
     const int valueOffset = getValueOffset(value);
-    const bool equalsDefault = valuePtrEqualsDefault(value->type, pg->copy + valueOffset, pg->address + valueOffset);
+    const bool equalsDefault = valuePtrEqualsDefault(value, pg->copy + valueOffset, pg->address + valueOffset);
 
     if (((dumpMask & DO_DIFF) == 0) || !equalsDefault) {
         if (dumpMask & SHOW_DEFAULTS && !equalsDefault) {
@@ -3019,7 +3027,7 @@ static void cliStatus(char *cmdline)
     cliPrintf(", Vref=%d.%2dV, Core temp=%ddegC", vrefintMv / 1000, (vrefintMv % 1000) / 10, coretemp);
 #endif
 
-#if defined(USE_SENSOR_NAMES)
+#if defined(USE_SENSOR_NAMES) && !defined(USE_GYRO_IMUF9001)
     const uint32_t detectedSensorsMask = sensorsMask();
     for (uint32_t i = 0; ; i++) {
         if (sensorTypeNames[i] == NULL) {
@@ -3035,6 +3043,12 @@ static void cliStatus(char *cmdline)
             }
         }
     }
+#else 
+    #if defined(USE_GYRO_IMUF9001)
+    UNUSED(sensorHardwareNames);
+    UNUSED(sensorTypeNames);
+    cliPrintf(" | IMU-F Version: %lu", imufCurrentVersion);
+    #endif
 #endif /* USE_SENSOR_NAMES */
     cliPrintLinefeed();
 
@@ -3148,6 +3162,9 @@ static void cliVersion(char *cmdline)
         shortGitRevision,
         MSP_API_VERSION_STRING
     );
+#ifdef USE_GYRO_IMUF9001
+    cliPrintLinef("# IMU-F Version: %lu", imufCurrentVersion);
+#endif
 }
 
 #if defined(USE_RESOURCE_MGMT)
@@ -3786,18 +3803,27 @@ const clicmd_t cmdTable[] = {
 static void cliReportImufErrors(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintf("Current Comm Errors: %ul", imufCrcErrorCount);
+    cliPrintf("Current Comm Errors: %lu", imufCrcErrorCount);
     cliPrintLinefeed();
 }
 
 static void cliImufUpdate(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrint("I muff, you muff, we all muff for IMU-F!");
-    cliPrintLinefeed();
-    (*((uint32_t *)0x2001FFEC)) = 0xF431FA77;
-    delay(1000);
-    cliReboot();
+
+    if( (*((__IO uint32_t *)UPT_ADDRESS)) != 0xFFFFFFFF )
+    {
+        cliPrint("I muff, you muff, we all muff for IMU-F!");
+        cliPrintLinefeed();
+        (*((__IO uint32_t *)0x2001FFEC)) = 0xF431FA77;
+        delay(1000);
+        cliReboot();
+    }
+    else
+    {
+        cliPrint("Improper hex detected, please use the full hex from https://heliorc.com/wiring/");
+        cliPrintLinefeed();
+    }
 }
 #endif
 
@@ -3806,11 +3832,19 @@ static void cliMsd(char *cmdline)
 {
     UNUSED(cmdline);
 
-    cliPrint("Loading as USB drive!");
-    cliPrintLinefeed();
-    (*((uint32_t *)0x2001FFF0)) = 0xF431FA11;
-    delay(1000);
-    cliReboot();
+    if( (*((__IO uint32_t *)MSD_ADDRESS)) != 0xFFFFFFFF )
+    {
+        cliPrint("Loading as USB drive!");
+        cliPrintLinefeed();
+        (*((__IO uint32_t *)0x2001FFF0)) = 0xF431FA11;
+        delay(1000);
+        cliReboot();
+    }
+    else
+    {
+        cliPrint("Improper hex detected, please use the full hex from https://heliorc.com/wiring/");
+        cliPrintLinefeed();
+    }
 }
 #endif
 

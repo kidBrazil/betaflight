@@ -57,6 +57,10 @@
 #include "sensors/battery.h"
 #include "sensors/gyro.h"
 
+#ifdef USE_GYRO_IMUF9001
+#include "drivers/accgyro/accgyro_imuf9001.h"
+#endif
+
 #ifndef USE_OSD_SLAVE
 pidProfile_t *currentPidProfile;
 #endif
@@ -339,6 +343,10 @@ static void validateAndFixConfig(void)
 #ifndef USE_OSD_SLAVE
 void validateAndFixGyroConfig(void)
 {
+    #ifdef USE_GYRO_IMUF9001
+    //keeop imuf_rate in sync with the gyro.
+    gyroConfigMutable()->imuf_rate = constrain(gyroConfigMutable()->gyro_sync_denom - 1, 0, 5);
+    #endif
     // Prevent invalid notch cutoff
     if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {
         gyroConfigMutable()->gyro_soft_notch_hz_1 = 0;

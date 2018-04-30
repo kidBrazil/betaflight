@@ -52,6 +52,15 @@ static float setpointRate[3], rcDeflection[3], rcDeflectionAbs[3];
 static float throttlePIDAttenuation;
 static bool reverseMotors = false;
 static applyRatesFn *applyRates;
+static float rcCommandInterp[4] = { 0, 0, 0, 0 };
+static float rcStepSize[4] = { 0, 0, 0, 0 };
+static float inverseRcInt;
+static uint8_t interpolationChannels;
+volatile bool isRXDataNew;
+volatile bool skipNextInterpolate;
+volatile int16_t rcInterpolationStepCount;
+volatile uint16_t rxRefreshRate;
+volatile uint16_t currentRxRefreshRate;
 
 float getSetpointRate(int axis)
 {
@@ -126,9 +135,6 @@ static void calculateSetpointRate(int axis)
     rcDeflectionAbs[axis] = rcCommandfAbs;
 
     float angleRate = applyRates(axis, rcCommandf, rcCommandfAbs);
-
-    DEBUG_SET(DEBUG_ANGLERATE, axis, angleRate);
-
     setpointRate[axis] = constrainf(angleRate, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT); // Rate limit protection (deg/sec)
 }
 
@@ -154,8 +160,10 @@ static void scaleRcCommandToFpvCamAngle(void)
 #define THROTTLE_BUFFER_MAX 20
 #define THROTTLE_DELTA_MS 100
 
-static void checkForThrottleErrorResetState(uint16_t rxRefreshRate)
+static void checkForThrottleErrorResetState(void)
 {
+    currentRxRefreshRate = constrain(getTaskDeltaTime(TASK_RX),1000,20000);
+
     static int index;
     static int16_t rcCommandThrottlePrevious[THROTTLE_BUFFER_MAX];
 
@@ -177,51 +185,45 @@ static void checkForThrottleErrorResetState(uint16_t rxRefreshRate)
     }
 }
 
-void processRcCommand(void)
+FAST_CODE NOINLINE void processRcCommand(void)
 {
-    static float rcCommandInterp[4] = { 0, 0, 0, 0 };
-    static float rcStepSize[4] = { 0, 0, 0, 0 };
-    static int16_t rcInterpolationStepCount;
-    static uint16_t currentRxRefreshRate;
+    if (skipNextInterpolate && !isRXDataNew) {
+        skipNextInterpolate = false;
+        return;
+    }
+    skipNextInterpolate = targetPidLooptime < 62;
 
-    if (isRXDataNew) {
-        currentRxRefreshRate = constrain(getTaskDeltaTime(TASK_RX),1000,20000);
-        if (isAntiGravityModeActive()) {
-            checkForThrottleErrorResetState(currentRxRefreshRate);
-        }
+    int updatedChannel = 0;
+    if (isRXDataNew && isAntiGravityModeActive()) {
+        checkForThrottleErrorResetState();
     }
 
-    const uint8_t interpolationChannels = rxConfig()->rcInterpolationChannels + 2; //"RP", "RPY", "RPYT"
-    uint16_t rxRefreshRate;
-    uint8_t updatedChannel = 0;
-
     if (rxConfig()->rcInterpolation) {
-         // Set RC refresh rate for sampling and channels to filter
-        switch (rxConfig()->rcInterpolation) {
-        case RC_SMOOTHING_AUTO:
-            rxRefreshRate = currentRxRefreshRate + 1000; // Add slight overhead to prevent ramps
-            break;
-        case RC_SMOOTHING_MANUAL:
-            rxRefreshRate = 1000 * rxConfig()->rcInterpolationInterval;
-            break;
-        case RC_SMOOTHING_OFF:
-        case RC_SMOOTHING_DEFAULT:
-        default:
-            rxRefreshRate = rxGetRefreshRate();
-        }
-
-        if (isRXDataNew && rxRefreshRate > 0) {
-            rcInterpolationStepCount = rxRefreshRate / targetPidLooptime;
-
-            for (int channel = ROLL; channel < interpolationChannels; channel++) {
-                rcStepSize[channel] = (rcCommand[channel] - rcCommandInterp[channel]) / (float)rcInterpolationStepCount;
-            }
-
+        if (isRXDataNew) {
             if (debugMode == DEBUG_RC_INTERPOLATION) {
                 debug[0] = lrintf(rcCommand[0]);
                 debug[1] = lrintf(getTaskDeltaTime(TASK_RX) / 1000);
-                //debug[1] = lrintf(rcCommandInterp[0]);
-                //debug[1] = lrintf(rcStepSize[0]*100);
+            }
+
+             // Set RC refresh rate for sampling and channels to filter
+            switch (rxConfig()->rcInterpolation) {
+                case RC_SMOOTHING_AUTO:
+                    rxRefreshRate = currentRxRefreshRate + 1000; // Add slight overhead to prevent ramps
+                    break;
+                case RC_SMOOTHING_MANUAL:
+                    rxRefreshRate = 1000 * rxConfig()->rcInterpolationInterval;
+                    break;
+                case RC_SMOOTHING_OFF:
+                case RC_SMOOTHING_DEFAULT:
+                default:
+                    rxRefreshRate = rxGetRefreshRate();
+            }
+
+            rcInterpolationStepCount = rxRefreshRate / targetPidLooptime;
+            inverseRcInt = 1.0f / (float)rcInterpolationStepCount;
+
+            for (int channel = ROLL; channel < interpolationChannels; channel++) {
+                rcStepSize[channel] = (rcCommand[channel] - rcCommandInterp[channel]) * inverseRcInt;
             }
         } else {
             rcInterpolationStepCount--;
@@ -260,6 +262,24 @@ void processRcCommand(void)
         if (rxConfig()->fpvCamAngleDegrees && IS_RC_MODE_ACTIVE(BOXFPVANGLEMIX) && !FLIGHT_MODE(HEADFREE_MODE)) {
             scaleRcCommandToFpvCamAngle();
         }
+
+        // HEADFREE_MODE in ACRO_MODE
+        // yaw rotation is earthframe bound
+        if (FLIGHT_MODE(HEADFREE_MODE) && (!FLIGHT_MODE(ANGLE_MODE)) && (!FLIGHT_MODE(HORIZON_MODE))) {
+            quaternion  vSetpointRate = VECTOR_INITIALIZE;
+
+            vSetpointRate.x = setpointRate[ROLL];
+            vSetpointRate.y = setpointRate[PITCH];
+            vSetpointRate.z = setpointRate[YAW];
+            quaternionTransformVectorEarthToBody(&vSetpointRate, &qHeadfree);
+            setpointRate[ROLL] = constrainf(vSetpointRate.x, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
+            setpointRate[PITCH] = constrainf(vSetpointRate.y, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
+            setpointRate[YAW] = constrainf(vSetpointRate.z, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT);
+        }
+
+        DEBUG_SET(DEBUG_ANGLERATE, ROLL, setpointRate[ROLL]);
+        DEBUG_SET(DEBUG_ANGLERATE, PITCH, setpointRate[PITCH]);
+        DEBUG_SET(DEBUG_ANGLERATE, YAW, setpointRate[YAW]);
     }
 
     if (isRXDataNew) {
@@ -267,8 +287,9 @@ void processRcCommand(void)
     }
 }
 
-void updateRcCommands(void)
+FAST_CODE NOINLINE void updateRcCommands(void)
 {
+    isRXDataNew = true;
     // PITCH & ROLL only dynamic PID adjustment,  depending on throttle value
     int32_t prop;
     if (rcData[THROTTLE] < currentControlRateProfile->tpa_breakpoint) {
@@ -342,22 +363,17 @@ void updateRcCommands(void)
             }
         }
     }
-    if (FLIGHT_MODE(HEADFREE_MODE)) {
-        static t_fp_vector_def  rcCommandBuff;
 
-        rcCommandBuff.X = rcCommand[ROLL];
-        rcCommandBuff.Y = rcCommand[PITCH];
-        if ((!FLIGHT_MODE(ANGLE_MODE)&&(!FLIGHT_MODE(HORIZON_MODE)))) {
-            rcCommandBuff.Z = rcCommand[YAW];
-        } else {
-            rcCommandBuff.Z = 0;
-        }
-        imuQuaternionHeadfreeTransformVectorEarthToBody(&rcCommandBuff);
-        rcCommand[ROLL] = rcCommandBuff.X;
-        rcCommand[PITCH] = rcCommandBuff.Y;
-        if ((!FLIGHT_MODE(ANGLE_MODE)&&(!FLIGHT_MODE(HORIZON_MODE)))) {
-            rcCommand[YAW] = rcCommandBuff.Z;
-        }
+    // HEADFREE_MODE  in ANGLE_MODE HORIZON_MODE
+    // yaw rotation is bodyframe bound
+    if (FLIGHT_MODE(HEADFREE_MODE) && (FLIGHT_MODE(ANGLE_MODE) || (FLIGHT_MODE(HORIZON_MODE)))) {
+        quaternion  vRcCommand = VECTOR_INITIALIZE;
+
+        vRcCommand.x = rcCommand[ROLL];
+        vRcCommand.y = rcCommand[PITCH];
+        quaternionTransformVectorEarthToBody(&vRcCommand, &qHeadfree);
+        rcCommand[ROLL] = vRcCommand.x;
+        rcCommand[PITCH] = vRcCommand.y;
     }
 }
 
@@ -396,4 +412,5 @@ void initRcProcessing(void)
 
         break;
     }
+    interpolationChannels = rxConfig()->rcInterpolationChannels + 2; //"RP", "RPY", "RPYT"
 }

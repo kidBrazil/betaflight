@@ -455,18 +455,6 @@ void mixerConfigureOutput(void)
                 currentMixer[i] = mixers[currentMixerMode].motor[i];
         }
     }
-
-    // in 3D mode, mixer gain has to be halved
-    if (feature(FEATURE_3D)) {
-        if (motorCount > 1) {
-            for (int i = 0; i < motorCount; i++) {
-                currentMixer[i].pitch *= 0.5f;
-                currentMixer[i].roll *= 0.5f;
-                currentMixer[i].yaw *= 0.5f;
-            }
-        }
-    }
-
     mixerResetDisarmedMotors();
 }
 
@@ -695,7 +683,7 @@ static void applyMixToMotors(float motorMix[MAX_SUPPORTED_MOTORS])
     }
 }
 
-void mixTable(timeUs_t currentTimeUs, uint8_t vbatPidCompensation)
+NOINLINE void mixTable(timeUs_t currentTimeUs, uint8_t vbatPidCompensation)
 {
     if (isFlipOverAfterCrashMode()) {
         applyFlipOverAfterCrashModeToMotors();
@@ -711,7 +699,7 @@ void mixTable(timeUs_t currentTimeUs, uint8_t vbatPidCompensation)
     const float scaledAxisPidPitch =
         constrainf(axisPIDSum[FD_PITCH], -currentPidProfile->pidSumLimit, currentPidProfile->pidSumLimit) / PID_MIXER_SCALING;
     float scaledAxisPidYaw =
-        constrainf(axisPIDSum[FD_YAW], -currentPidProfile->pidSumLimitYaw, currentPidProfile->pidSumLimitYaw) / PID_MIXER_SCALING;
+        constrainf(axisPIDSum[FD_YAW], -currentPidProfile->pidSumLimit, currentPidProfile->pidSumLimit) / PID_MIXER_SCALING;
     if (!mixerConfig()->yaw_motors_reversed) {
         scaledAxisPidYaw = -scaledAxisPidYaw;
     }

@@ -194,26 +194,26 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
 {
     (void)(gyro); ///not used at this time
     //no reason not to get acc and gyro data at the same time
+    lastImufExtiTime = micros();
     #ifdef USE_GYRO_IMUF9001
-    if (isImufCalibrating) //calibrating
+    if (isImufCalibrating == IMUF_IS_CALIBRATING) //calibrating
     {
         //two steps
         //step 1 is isImufCalibrating=1, this starts the calibration command and sends it to the IMU-f
         //step 2 is isImufCalibrating=2, this sets the tx buffer back to 0 so we don't keep sending the calibration command over and over
         memset(dmaTxBuffer, 0, sizeof(imufCommand_t)); //clear buffer
-        if (isImufCalibrating == IMUF_CALIBRATION_STEP1) //step 1, set the command to be sent
-        {
-            //set calibration command with CRC, typecast the dmaTxBuffer as imufCommand_t
-            (*(imufCommand_t *)(dmaTxBuffer)).command = IMUF_COMMAND_CALIBRATE;
-            (*(imufCommand_t *)(dmaTxBuffer)).crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
-            //set isImufCalibrating to step 2, which is just used so the memset to 0 runs after the calibration commmand is sent
-            isImufCalibrating = IMUF_CALIBRATION_STEP2; //go to step two
-        }
-        else
-        {   //step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
-            isImufCalibrating = IMUF_NOT_CALIBRATING;
-        }
-
+        //set calibration command with CRC, typecast the dmaTxBuffer as imufCommand_t
+        (*(imufCommand_t *)(dmaTxBuffer)).command = IMUF_COMMAND_CALIBRATE;
+        (*(imufCommand_t *)(dmaTxBuffer)).crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        //set isImufCalibrating to step 2, which is just used so the memset to 0 runs after the calibration commmand is sent
+        isImufCalibrating = IMUF_DONE_CALIBRATING; //go to step two
+    }
+    else if (isImufCalibrating == IMUF_DONE_CALIBRATING)
+    {
+        // step 2, memset of the tx buffer has run, set isImufCalibrating to 0.
+        (*(imufCommand_t *)(dmaTxBuffer)).command = 0;
+        (*(imufCommand_t *)(dmaTxBuffer)).crc     = 0; //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        imufEndCalibration();
     }
     memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer
     //send and receive data using SPI and DMA
@@ -229,8 +229,8 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
 {
     //spi rx dma callback
     #ifdef USE_GYRO_IMUF9001
-    volatile uint32_t crc1 = (*(uint32_t *)(dmaRxBuffer+gyroConfig()->imuf_mode-4));
-    volatile uint32_t crc2 = getCrcImuf9001((uint32_t *)(dmaRxBuffer), (gyroConfig()->imuf_mode >> 2)-1);
+    volatile uint32_t crc1 = ( (*(uint32_t *)(dmaRxBuffer+gyroConfig()->imuf_mode-4)) & 0xFF );
+    volatile uint32_t crc2 = ( getCrcImuf9001((uint32_t *)(dmaRxBuffer), (gyroConfig()->imuf_mode >> 2)-1) & 0xFF );
     if(crc1 == crc2)
     {
         memcpy(&imufData, dmaRxBuffer, sizeof(imufData_t));
@@ -240,6 +240,12 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
         gyro->gyroADC[X] = imufData.gyroX;
         gyro->gyroADC[Y] = imufData.gyroY;
         gyro->gyroADC[Z] = imufData.gyroZ;
+        if (gyroConfig()->imuf_mode == GTBCM_GYRO_ACC_QUAT_FILTER_F) {
+            imufQuat.w       = imufData.quaternionW;
+            imufQuat.x       = imufData.quaternionX;
+            imufQuat.y       = imufData.quaternionY;
+            imufQuat.z       = imufData.quaternionZ;
+        }
     }
     else
     {
@@ -338,7 +344,7 @@ static bool detectSPISensorsAndUpdateDetectionResult(gyroDev_t *gyro)
     #ifdef IMUF9001_CS_PIN
         gyro->bus.busdev_u.spi.csnPin = gyro->bus.busdev_u.spi.csnPin == IO_NONE ? IOGetByTag(IO_TAG(IMUF9001_CS_PIN)) : gyro->bus.busdev_u.spi.csnPin;
     #else
-+       #error IMUF9001 must use a CS pin (IMUF9001_CS_PIN)
+       #error IMUF9001 must use a CS pin (IMUF9001_CS_PIN)
     #endif
     #ifdef IMUF9001_RST_PIN
         gyro->bus.busdev_u.spi.rstPin = IOGetByTag(IO_TAG(IMUF9001_RST_PIN));
