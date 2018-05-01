@@ -69,6 +69,7 @@ void targetConfiguration(void) {
         pidProfile->dterm_filter_type     = FILTER_BIQUAD;
         pidProfile->dterm_filter_style    = KD_FILTER_NOSP;
         pidProfile->dterm_lpf_hz          = 65;
+        pidProfile->dterm_notch_cutoff    = 0;
     }
 }
 
