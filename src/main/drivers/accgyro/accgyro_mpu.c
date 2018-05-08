@@ -223,7 +223,7 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
 
     (*(imufCommand_t *)(dmaTxBuffer)).param1 = ARMING_FLAG(ARMED);
     memcpy(&(*(imufCommand_t *)(dmaTxBuffer)).param2, rcData, 8);
-    memcpy(&(*(imufCommand_t *)(dmaTxBuffer)).param5, setpointRate, sizeof(setpointRate));
+    memcpy(&(*(imufCommand_t *)(dmaTxBuffer)).param5, (float *)setpointRate, sizeof(setpointRate));
     dmaSpiTransmitReceive(dmaTxBuffer, dmaRxBuffer, gyroConfig()->imuf_mode, 0);
     #else
     dmaTxBuffer[0] = MPU_RA_ACCEL_XOUT_H | 0x80;
