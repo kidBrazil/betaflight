@@ -57,6 +57,9 @@
 #include "drivers/accgyro/accgyro_spi_mpu9250.h"
 #ifdef USE_GYRO_IMUF9001
 #include "drivers/accgyro/accgyro_imuf9001.h"
+#include "rx/rx.h"
+#include "fc/fc_rc.h"
+#include "fc/runtime_config.h"
 #endif //USE_GYRO_IMUF9001
 #include "drivers/accgyro/accgyro_mpu.h"
 
@@ -217,6 +220,10 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
     }
     memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer
     //send and receive data using SPI and DMA
+
+    (*(imufCommand_t *)(dmaTxBuffer)).param1 = ARMING_FLAG(ARMED);
+    memcpy(&(*(imufCommand_t *)(dmaTxBuffer)).param2, rcData, 8);
+    memcpy(&(*(imufCommand_t *)(dmaTxBuffer)).param5, setpointRate, sizeof(setpointRate));
     dmaSpiTransmitReceive(dmaTxBuffer, dmaRxBuffer, gyroConfig()->imuf_mode, 0);
     #else
     dmaTxBuffer[0] = MPU_RA_ACCEL_XOUT_H | 0x80;
