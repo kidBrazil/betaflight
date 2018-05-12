@@ -194,8 +194,8 @@
 
 #define CAMERA_CONTROL_PIN             PB6    // define dedicated camera_osd_control pin
 
-#define IMUF_DEFAULT_PITCH_Q  4800
-#define IMUF_DEFAULT_ROLL_Q   4800
-#define IMUF_DEFAULT_YAW_Q    2800
-#define IMUF_DEFAULT_W        120
-#define IMUF_DEFAULT_LPF_HZ   200.0f
+#define IMUF_DEFAULT_PITCH_Q  3500
+#define IMUF_DEFAULT_ROLL_Q   3500
+#define IMUF_DEFAULT_YAW_Q    2500
+#define IMUF_DEFAULT_W        300
+#define IMUF_DEFAULT_LPF_HZ   120.0f
