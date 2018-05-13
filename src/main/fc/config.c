@@ -345,7 +345,7 @@ void validateAndFixGyroConfig(void)
 {
     #ifdef USE_GYRO_IMUF9001
     //keeop imuf_rate in sync with the gyro.
-    gyroConfigMutable()->imuf_rate = constrain(gyroConfigMutable()->gyro_sync_denom - 1, 0, 5);
+    gyroConfigMutable()->imuf_rate = constrain(gyroConfigMutable()->gyro_sync_denom - 1, 0, 31);
     #endif
     // Prevent invalid notch cutoff
     if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {

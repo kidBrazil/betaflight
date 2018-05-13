@@ -244,14 +244,14 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     imufCommand_t rxData;
 
     rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
-    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16 );
-    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_pitch_q << 16 ) | (uint16_t)gyroConfig()->imuf_w;
-    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16 ) | 0;
-    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16 ) | 0;
-    rxData.param6 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
-    rxData.param7 = ( (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz << 16) | (uint16_t)0;
-    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 ) | returnGyroAlignmentForImuf9001();
-    rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 ) | (int16_t)boardAlignment()->pitchDegrees;
+    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate) << 16)              | (uint16_t)gyroConfig()->imuf_w;
+    rxData.param3 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16)              | (uint16_t)gyroConfig()->imuf_pitch_q;
+    rxData.param4 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16)               | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
+    rxData.param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;
+    rxData.param6 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
+    rxData.param7 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | returnGyroAlignmentForImuf9001();
+    rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )           | (int16_t)boardAlignment()->pitchDegrees;
 
     for (attempt = 0; attempt < 10; attempt++)
     {
