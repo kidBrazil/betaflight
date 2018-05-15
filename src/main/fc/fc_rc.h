@@ -22,9 +22,6 @@ typedef enum {
     RC_INTERP_RPYT = 2 //roll, pitch, yaw, and throttle
 } rcInterpChannels_e;
 
-#ifdef USE_GYRO_IMUF9001
-static volatile float setpointRate[3];
-#endif
 
 void processRcCommand(void);
 float getSetpointRate(int axis);

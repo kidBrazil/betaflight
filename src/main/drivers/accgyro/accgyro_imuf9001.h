@@ -86,6 +86,7 @@ typedef enum gyroCommands
     IMUF_COMMAND_REPORT_INFO     = 121,
     IMUF_COMMAND_SETUP           = 122,
     IMUF_COMMAND_RESTART         = 127,
+    IMUF_COMMAND_SETPOINT        = 224,
 } gyroCommands_t;
 
 typedef struct gyroFrame
