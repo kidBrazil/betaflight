@@ -50,14 +50,14 @@ void targetConfiguration(void) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
 
         pidProfile->pid[PID_PITCH].P = 45;
-        pidProfile->pid[PID_PITCH].I = 70;		
+        pidProfile->pid[PID_PITCH].I = 50;		
         pidProfile->pid[PID_PITCH].D = 20;		
         pidProfile->pid[PID_ROLL].P  = 45;	
-        pidProfile->pid[PID_ROLL].I  = 70;
+        pidProfile->pid[PID_ROLL].I  = 50;
         pidProfile->pid[PID_ROLL].D  = 22;
         pidProfile->pid[PID_YAW].P   = 45;	
-        pidProfile->pid[PID_YAW].I   = 70;
-        pidProfile->pid[PID_YAW].D   = 0;
+        pidProfile->pid[PID_YAW].I   = 50;
+        pidProfile->pid[PID_YAW].D   = 8;
 
         /* Setpoints */
         // should't need to set these since they don't get init in gyro.c with USE_GYRO_IMUF
