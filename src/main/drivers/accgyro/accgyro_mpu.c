@@ -220,13 +220,13 @@ bool mpuGyroDmaSpiReadStart(gyroDev_t * gyro)
     }
     else
     {
-        //send setpoint and arm status
-        (*(imufCommand_t *)(dmaTxBuffer)).command = IMUF_COMMAND_SETPOINT;
-        (*(imufCommand_t *)(dmaTxBuffer)).param1  = getSetpointRate(0);
-        (*(imufCommand_t *)(dmaTxBuffer)).param2  = getSetpointRate(1);
-        (*(imufCommand_t *)(dmaTxBuffer)).param3  = getSetpointRate(2);
-        (*(imufCommand_t *)(dmaTxBuffer)).param4  = ARMING_FLAG(ARMED);
-        (*(imufCommand_t *)(dmaTxBuffer)).crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
+        // //send setpoint and arm status
+        // (*(imufCommand_t *)(dmaTxBuffer)).command = IMUF_COMMAND_SETPOINT;
+        // (*(imufCommand_t *)(dmaTxBuffer)).param1  = getSetpointRate(0);
+        // (*(imufCommand_t *)(dmaTxBuffer)).param2  = getSetpointRate(1);
+        // (*(imufCommand_t *)(dmaTxBuffer)).param3  = getSetpointRate(2);
+        // (*(imufCommand_t *)(dmaTxBuffer)).param4  = ARMING_FLAG(ARMED);
+        // (*(imufCommand_t *)(dmaTxBuffer)).crc     = getCrcImuf9001((uint32_t *)dmaTxBuffer, 11); //typecast the dmaTxBuffer as a uint32_t array which is what the crc command needs
     }
 
     memset(dmaRxBuffer, 0, gyroConfig()->imuf_mode); //clear buffer

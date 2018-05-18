@@ -58,7 +58,7 @@ static float rcStepSize[4] = { 0, 0, 0, 0 };
 static float inverseRcInt;
 static uint8_t interpolationChannels;
 volatile bool isRXDataNew;
-volatile bool skipNextInterpolate;
+volatile uint8_t skipInterpolate;
 volatile int16_t rcInterpolationStepCount;
 volatile uint16_t rxRefreshRate;
 volatile uint16_t currentRxRefreshRate;
@@ -188,11 +188,11 @@ static void checkForThrottleErrorResetState(void)
 
 void processRcCommand(void)
 {
-    if (skipNextInterpolate && !isRXDataNew) {
-        skipNextInterpolate = false;
+    if (skipInterpolate && !isRXDataNew) {
+        skipInterpolate--;
         return;
     }
-    skipNextInterpolate = targetPidLooptime < 62;
+    skipInterpolate = targetPidLooptime < 120 ? 3: 0;
 
     int updatedChannel = 0;
     if (isRXDataNew && isAntiGravityModeActive()) {
@@ -203,7 +203,7 @@ void processRcCommand(void)
         if (isRXDataNew) {
             if (debugMode == DEBUG_RC_INTERPOLATION) {
                 debug[0] = lrintf(rcCommand[0]);
-                debug[1] = lrintf(getTaskDeltaTime(TASK_RX) / 1000);
+                debug[1] = lrintf(getTaskDeltaTime(TASK_RX) * 0.001f);
             }
 
              // Set RC refresh rate for sampling and channels to filter
@@ -220,7 +220,7 @@ void processRcCommand(void)
                     rxRefreshRate = rxGetRefreshRate();
             }
 
-            rcInterpolationStepCount = rxRefreshRate / targetPidLooptime;
+            rcInterpolationStepCount = rxRefreshRate / MAX(targetPidLooptime, 125u);
             inverseRcInt = 1.0f / (float)rcInterpolationStepCount;
 
             for (int channel = ROLL; channel < interpolationChannels; channel++) {
