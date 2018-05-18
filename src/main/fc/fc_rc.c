@@ -50,6 +50,7 @@ typedef float (applyRatesFn)(const int axis, float rcCommandf, const float rcCom
 
 static float rcDeflection[3], rcDeflectionAbs[3];
 static volatile float setpointRate[3];
+static volatile uint32_t setpointRateInt[3];
 static float throttlePIDAttenuation;
 static bool reverseMotors = false;
 static applyRatesFn *applyRates;
@@ -66,6 +67,11 @@ volatile uint16_t currentRxRefreshRate;
 float getSetpointRate(int axis)
 {
     return setpointRate[axis];
+}
+
+uint32_t getSetpointRateInt(int axis) 
+{
+    return setpointRateInt[axis];
 }
 
 float getRcDeflection(int axis)
@@ -137,6 +143,7 @@ static void calculateSetpointRate(int axis)
 
     float angleRate = applyRates(axis, rcCommandf, rcCommandfAbs);
     setpointRate[axis] = constrainf(angleRate, -SETPOINT_RATE_LIMIT, SETPOINT_RATE_LIMIT); // Rate limit protection (deg/sec)
+    setpointRateInt[axis] = (uint32_t)setpointRate[axis];
 }
 
 static void scaleRcCommandToFpvCamAngle(void)

@@ -25,6 +25,7 @@ typedef enum {
 
 void processRcCommand(void);
 float getSetpointRate(int axis);
+uint32_t getSetpointRateInt(int axis);
 float getRcDeflection(int axis);
 float getRcDeflectionAbs(int axis);
 float getThrottlePIDAttenuation(void);
