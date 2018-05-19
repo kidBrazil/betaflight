@@ -74,6 +74,18 @@ PG_REGISTER_WITH_RESET_TEMPLATE(pidConfig_t, pidConfig, PG_PID_CONFIG, 2);
 #define USE_BUTTERED_PIDS false
 #endif //USE_BUTTERED_PIDS
 
+#ifndef DEFAULT_PIDS_ROLL
+#define DEFAULT_PIDS_ROLL { 40, 40, 20 }
+#endif //DEFAULT_PIDS_ROLL
+
+#ifndef DEFAULT_PIDS_PITCH
+#define DEFAULT_PIDS_PITCH { 58, 50, 22 }
+#endif //DEFAULT_PIDS_PITCH
+
+#ifndef DEFAULT_PIDS_YAW
+#define DEFAULT_PIDS_YAW { 55, 45, 5 }
+#endif //DEFAULT_PIDS_YAW
+
 #ifdef USE_RUNAWAY_TAKEOFF
 PG_RESET_TEMPLATE(pidConfig_t, pidConfig,
     .pid_process_denom = PID_PROCESS_DENOM_DEFAULT,
@@ -93,9 +105,9 @@ void resetPidProfile(pidProfile_t *pidProfile)
 {
     RESET_CONFIG(pidProfile_t, pidProfile,
         .pid = {
-            [PID_ROLL] =  { 40, 40, 20 },
-            [PID_PITCH] = { 58, 50, 22 },
-            [PID_YAW] =   { 55, 45, 5 },
+            [PID_ROLL] =  DEFAULT_PIDS_ROLL,
+            [PID_PITCH] = DEFAULT_PIDS_PITCH,
+            [PID_YAW] =   DEFAULT_PIDS_YAW,
             [PID_ALT] =   { 50, 0, 0 },
             [PID_POS] =   { 15, 0, 0 },     // POSHOLD_P * 100, POSHOLD_I * 100,
             [PID_POSR] =  { 34, 14, 53 },   // POSHOLD_RATE_P * 10, POSHOLD_RATE_I * 100, POSHOLD_RATE_D * 1000,

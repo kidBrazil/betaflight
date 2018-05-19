@@ -32,7 +32,13 @@
 #include "fc/rc_controls.h"
 #include "rx/rx.h"
 
+#define DEFAULT_PIDS_ROLL   {45, 50, 20}
+#define DEFAULT_PIDS_PITCH  {45, 50, 22}
+#define DEFAULT_PIDS_YAW    {45, 50, 8}
 
+#define BUTTERED_PIDS_ROLL  (pid8_t){50, 50, 12}
+#define BUTTERED_PIDS_PITCH (pid8_t){54, 50, 14}
+#define BUTTERED_PIDS_YAW   (pid8_t){50, 50, 5}
 
 
 void targetConfiguration(void) {
@@ -49,22 +55,23 @@ void targetConfiguration(void) {
     for (uint8_t pidProfileIndex = 0; pidProfileIndex < MAX_PROFILE_COUNT; pidProfileIndex++) {
         pidProfile_t *pidProfile = pidProfilesMutable(pidProfileIndex);
 
-        pidProfile->pid[PID_PITCH].P = 45;
-        pidProfile->pid[PID_PITCH].I = 50;		
-        pidProfile->pid[PID_PITCH].D = 12;		
-        pidProfile->pid[PID_ROLL].P  = 45;	
-        pidProfile->pid[PID_ROLL].I  = 50;
-        pidProfile->pid[PID_ROLL].D  = 14;
-        pidProfile->pid[PID_YAW].P   = 45;	
-        pidProfile->pid[PID_YAW].I   = 50;
-        pidProfile->pid[PID_YAW].D   = 5;
-
+        pidProfile->buttered_pids = pidProfileIndex > 0;
+        if (pidProfile->buttered_pids) {
+            pidProfile->pid[PID_ROLL]  = BUTTERED_PIDS_ROLL;
+            pidProfile->pid[PID_PITCH] = BUTTERED_PIDS_PITCH;
+            pidProfile->pid[PID_YAW]   = BUTTERED_PIDS_YAW;
+        }
+       
         /* Setpoints */
         // should't need to set these since they don't get init in gyro.c with USE_GYRO_IMUF
         // pidProfile->yaw_lpf_hz = 0;
         // pidProfile->dterm_lpf_hz = 0;    
         // pidProfile->dterm_notch_hz = 0;
         // pidProfile->dterm_notch_cutoff = 0;
+        if (!pidProfileIndex) {
+            pidProfile->dtermSetpointWeight   = 100;	
+            pidProfile->setpointRelaxRatio    = 100;
+        }
         pidProfile->dterm_filter_type     = FILTER_BIQUAD;
         pidProfile->dterm_filter_style    = KD_FILTER_NOSP;
         pidProfile->dterm_lpf_hz          = 65;

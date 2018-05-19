@@ -161,6 +161,7 @@ static OSD_Entry cmsx_menuPidEntries[] =
     { "YAW   D", OME_UINT8, NULL, &(OSD_UINT8_t){ &tempPid[PID_YAW][2],   0, 200, 1 }, 0 },
 
     { "BACK", OME_Back, NULL, NULL, 0 },
+    { "SAVE&EXIT",   OME_OSD_Exit, cmsMenuExit,   (void *)CMS_EXIT_SAVE, 0},
     { NULL, OME_END, NULL, NULL, 0 }
 };
 
@@ -427,7 +428,8 @@ static long cmsx_menuImuf_onExit(const OSD_Entry *self)
 #if defined(USE_GYRO_IMUF9001)
 static OSD_Entry cmsx_menuImufEntries[] =
 {
-    { "-- SPRING_IMUF --", OME_Label, NULL, NULL, 0 },
+    { "-- SPRING IMU-F --", OME_Label, NULL, NULL, 0 },
+    { "-- CHANGES REQUIRE REBOOT --", OME_Label, NULL, NULL, 0 },
     { "IMUF W",    OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_w,                   0, 300,    1 }, 0 },
     { "ROLL Q",    OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_roll_q,              0, 16000, 50 }, 0 },
     { "PITCH Q",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_pitch_q,             0, 16000, 50 }, 0 },
@@ -437,7 +439,6 @@ static OSD_Entry cmsx_menuImufEntries[] =
     { "YAW LPF",   OME_UINT16, NULL, &(OSD_UINT16_t) { &gyroConfig_imuf_yaw_lpf_cutoff_hz,   0, 450,    1 }, 0 },
 
     
-    { "-- changes require reboot --", OME_Label, NULL, NULL, 0 },
     { "BACK",        OME_Back,            NULL,   NULL,             0},
     { "SAVE&REBOOT", OME_OSD_Exit, cmsMenuExit,   (void *)CMS_EXIT_SAVEREBOOT, 0},
     { NULL, OME_END, NULL, NULL, 0 }
