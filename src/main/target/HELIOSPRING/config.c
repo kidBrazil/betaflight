@@ -30,15 +30,7 @@
 #include "fc/config.h"
 #include "fc/fc_rc.h"
 #include "fc/rc_controls.h"
-#include "rx/rx.h"
-
-#define DEFAULT_PIDS_ROLL   {45, 50, 20}
-#define DEFAULT_PIDS_PITCH  {45, 50, 22}
-#define DEFAULT_PIDS_YAW    {45, 50, 8}
-
-#define BUTTERED_PIDS_ROLL  (pid8_t){50, 50, 12}
-#define BUTTERED_PIDS_PITCH (pid8_t){54, 50, 14}
-#define BUTTERED_PIDS_YAW   (pid8_t){50, 50, 5}
+#include "rx/rx.h"\
 
 
 void targetConfiguration(void) {
