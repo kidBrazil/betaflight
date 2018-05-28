@@ -62,10 +62,10 @@ typedef enum {
 typedef enum {
     IMUF_RATE_32K = 0,
     IMUF_RATE_16K = 1,
-    IMUF_RATE_8K = 3,
-    IMUF_RATE_4K = 7,
-    IMUF_RATE_2K = 15,
-    IMUF_RATE_1K = 31
+    IMUF_RATE_8K = 2,
+    IMUF_RATE_4K = 3,
+    IMUF_RATE_2K = 4,
+    IMUF_RATE_1K = 5
 } imufRate_e;
 #endif
 

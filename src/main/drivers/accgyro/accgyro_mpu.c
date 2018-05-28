@@ -260,9 +260,15 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
             imufQuat.y       = imufData.quaternionY;
             imufQuat.z       = imufData.quaternionZ;
         }
+        dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready
+        
     }
     else
     {
+        if (imufCrcErrorCount > 100000)
+        {
+            imufCrcErrorCount = 0;
+        }
         //error handler
         imufCrcErrorCount++; //check every so often and cause a failsafe is this number is above a certain ammount
     }
@@ -273,8 +279,8 @@ void mpuGyroDmaSpiReadFinish(gyroDev_t * gyro)
     gyro->gyroADCRaw[X] = (int16_t)((dmaRxBuffer[9] << 8)  | dmaRxBuffer[10]);
     gyro->gyroADCRaw[Y] = (int16_t)((dmaRxBuffer[11] << 8) | dmaRxBuffer[12]);
     gyro->gyroADCRaw[Z] = (int16_t)((dmaRxBuffer[13] << 8) | dmaRxBuffer[14]);
+    dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready    
     #endif
-    dmaSpiGyroDataReady = 1; //set flag to tell scheduler data is ready
 }
 #endif
 

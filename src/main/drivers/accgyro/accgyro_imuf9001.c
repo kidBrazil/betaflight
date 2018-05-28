@@ -244,7 +244,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     imufCommand_t rxData;
 
     rxData.param1 = VerifyAllowedCommMode(gyroConfig()->imuf_mode);
-    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate) << 16)              | (uint16_t)gyroConfig()->imuf_w;
+    rxData.param2 = ( (uint16_t)(gyroConfig()->imuf_rate+1) << 16)              | (uint16_t)gyroConfig()->imuf_w;
     rxData.param3 = ( (uint16_t)gyroConfig()->imuf_roll_q << 16)              | (uint16_t)gyroConfig()->imuf_pitch_q;
     rxData.param4 = ( (uint16_t)gyroConfig()->imuf_yaw_q << 16)               | (uint16_t)gyroConfig()->imuf_roll_lpf_cutoff_hz;
     rxData.param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;

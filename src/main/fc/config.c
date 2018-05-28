@@ -340,12 +340,38 @@ static void validateAndFixConfig(void)
 #endif
 }
 
+#ifdef USE_GYRO_IMUF9001 
+int getImufRateFromGyroSyncDenom(int gyroSyncDenom){
+    switch (gyroSyncDenom) {
+        case 1:
+            return IMUF_RATE_32K;
+            break;
+        case 2:
+        default:
+            return IMUF_RATE_16K;
+            break;
+        case 4:
+            return IMUF_RATE_8K;
+            break;
+        case 8:
+            return IMUF_RATE_4K;
+            break;
+        case 16:
+            return IMUF_RATE_2K;
+            break;
+        case 32:
+            return IMUF_RATE_1K;
+            break;
+    }
+}
+#endif
+
 #ifndef USE_OSD_SLAVE
 void validateAndFixGyroConfig(void)
 {
     #ifdef USE_GYRO_IMUF9001
     //keeop imuf_rate in sync with the gyro.
-    gyroConfigMutable()->imuf_rate = constrain(gyroConfigMutable()->gyro_sync_denom - 1, 0, 31);
+    gyroConfigMutable()->imuf_rate = getImufRateFromGyroSyncDenom(gyroConfigMutable()->gyro_sync_denom);
     #endif
     // Prevent invalid notch cutoff
     if (gyroConfig()->gyro_soft_notch_cutoff_1 >= gyroConfig()->gyro_soft_notch_hz_1) {

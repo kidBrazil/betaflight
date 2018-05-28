@@ -154,7 +154,7 @@ void dmaSpiInit(void)
     //setup interrupt
     nvicInitStruct.NVIC_IRQChannel = DMA_SPI_RX_DMA_IRQn;
     nvicInitStruct.NVIC_IRQChannelPreemptionPriority = 0;
-    nvicInitStruct.NVIC_IRQChannelSubPriority = 1;
+    nvicInitStruct.NVIC_IRQChannelSubPriority = 2;
     nvicInitStruct.NVIC_IRQChannelCmd = ENABLE;
     NVIC_Init(&nvicInitStruct);
     DMA_ITConfig(DMA_SPI_RX_DMA_STREAM, DMA_IT_TC, ENABLE);
