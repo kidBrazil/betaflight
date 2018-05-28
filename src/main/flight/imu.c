@@ -374,7 +374,10 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     deltaT = imuDeltaT;
 #endif
     // get sensor data
-#ifndef USE_GYRO_IMUF9001
+#ifdef USE_GYRO_IMUF9001
+    if (gyroConfig()->imuf_mode != GTBCM_GYRO_ACC_QUAT_FILTER_F)
+    {
+#endif
     quaternion vError = VECTOR_INITIALIZE;
     quaternion vGyroAverage;
     quaternion vAccAverage;
@@ -386,16 +389,20 @@ static void imuCalculateEstimatedAttitude(timeUs_t currentTimeUs)
     }
     applySensorCorrection(&vError);
     imuMahonyAHRSupdate(deltaT * 1e-6f, &vGyroAverage, &vError);
-#else
-    UNUSED(deltaT);
-    UNUSED(applyAccError);
-    UNUSED(imuMahonyAHRSupdate);
-    qAttitude.w = imufQuat.w;
-    qAttitude.x = imufQuat.x;
-    qAttitude.y = imufQuat.y;
-    qAttitude.z = imufQuat.z;
-    applySensorCorrection(&qAttitude);
-    quaternionComputeProducts(&qAttitude, &qpAttitude);
+#ifdef USE_GYRO_IMUF9001
+    }
+    else
+    {
+        UNUSED(deltaT);
+        UNUSED(applyAccError);
+        UNUSED(imuMahonyAHRSupdate);
+        qAttitude.w = imufQuat.w;
+        qAttitude.x = imufQuat.x;
+        qAttitude.y = imufQuat.y;
+        qAttitude.z = imufQuat.z;
+        applySensorCorrection(&qAttitude);
+        quaternionComputeProducts(&qAttitude, &qpAttitude);
+    }
 #endif
     imuUpdateEulerAngles();
 #endif

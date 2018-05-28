@@ -72,10 +72,8 @@
 
 
 FAST_RAM acc_t acc;                       // acc access functions
-#ifndef USE_ACC_IMUF9001
 static float accumulatedMeasurements[XYZ_AXIS_COUNT];
 static int accumulatedMeasurementCount;
-#endif
 static uint16_t calibratingA = 0;      // the calibration is done is the main loop. Calibrating decreases at each cycle down to 0, then we enter in a normal mode.
 
 extern uint16_t InflightcalibratingA;
@@ -505,16 +503,20 @@ void accUpdate(timeUs_t currentTimeUs, rollAndPitchTrims_t *rollAndPitchTrims)
     acc.accADC[Y] -= accelerationTrims->raw[Y];
     acc.accADC[Z] -= accelerationTrims->raw[Z];
 
-    #ifndef USE_GYRO_IMUF9001
+    #ifdef USE_GYRO_IMUF9001
+    if (gyroConfig()->imuf_mode != GTBCM_GYRO_ACC_QUAT_FILTER_F)
+    {
+    #endif
     ++accumulatedMeasurementCount;
     for (int axis = 0; axis < XYZ_AXIS_COUNT; axis++) {
         accumulatedMeasurements[axis] += acc.accADC[axis];
+    }
+    #ifdef USE_GYRO_IMUF9001
     }
     #endif
     acc.isAccelUpdatedAtLeastOnce = true;
 }
 
-#ifndef USE_GYRO_IMUF9001
 bool accGetAverage(quaternion *vAverage) {
   if (accumulatedMeasurementCount > 0) {
     vAverage->w = 0;
@@ -532,7 +534,6 @@ bool accGetAverage(quaternion *vAverage) {
     return false;
   }
 }
-#endif
 
 void setAccelerationTrims(flightDynamicsTrims_t *accelerationTrimsToUse)
 {
