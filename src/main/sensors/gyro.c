@@ -58,6 +58,7 @@
 #endif //USE_GYRO_IMUF9001
 #include "drivers/accgyro/gyro_sync.h"
 #include "drivers/bus_spi.h"
+#include "drivers/dma_spi.h"
 #include "drivers/io.h"
 #include "drivers/time.h"
 
@@ -101,9 +102,6 @@ typedef struct gyroCalibration_s {
 } gyroCalibration_t;
 
 bool firstArmingCalibrationWasStarted = false;
-#ifdef USE_GYRO_IMUF9001
-uint32_t lastImufExtiTime = 0;
-#endif //USE_GYRO_IMUF9001
 
 typedef union gyroSoftFilter_u {
     biquadFilter_t gyroFilterLpfState[XYZ_AXIS_COUNT];
@@ -705,46 +703,7 @@ static bool isOnFinalGyroCalibrationCycle(const gyroCalibration_t *gyroCalibrati
     return gyroCalibration->calibratingG == 1;
 }
 
-#ifdef USE_GYRO_IMUF9001
 
-bool gyroIsSane(void)
-{
-    // if (micros() - lastImufExtiTime > 2000)
-    // {
-    //     //no EXTI in 1000 us, that's bad
-    //     return false;
-    // }
-
-    //100 CRC errors is a lot
-    if (imufCrcErrorCount > 100)
-    {
-        imufCrcErrorCount = 0;
-        return false;
-    }
-
-    return true;
-}
-
-uint16_t returnGyroAlignmentForImuf9001(void)
-{
-    if (isBoardAlignmentStandard(boardAlignment()))
-    {
-        if(gyroConfig()->gyro_align <= 1)
-        {
-            return 0;
-        }
-        else
-        {
-            return (uint16_t)(gyroConfig()->gyro_align - 1);
-        }
-    }
-    else
-    {
-        return (uint16_t)IMU_CW0;
-    }
-}
-
-#endif
 
 static uint16_t gyroCalculateCalibratingCycles(void) {
     return (CALIBRATING_GYRO_TIME_US / gyro.targetLooptime);
@@ -899,12 +858,7 @@ static void checkForOverflow(gyroSensor_t *gyroSensor, timeUs_t currentTimeUs)
 
 static FAST_CODE void gyroUpdateSensor(gyroSensor_t *gyroSensor, timeUs_t currentTimeUs)
 {
-    #ifdef USE_DMA_SPI_DEVICE
-    if (!dmaSpiGyroDataReady) {
-        return;
-    }
-        //dmaSpiGyroDataReady = 0;
-    #else
+    #ifndef USE_DMA_SPI_DEVICE
     if (!gyroSensor->gyroDev.readFn(&gyroSensor->gyroDev)) {
         return;
     }
@@ -1080,8 +1034,8 @@ FAST_CODE void gyroDmaSpiFinishRead(void)
 
 FAST_CODE void gyroDmaSpiStartRead(void)
 {
-    //called by scheduler
-    gyroSensor1.gyroDev.readFn(&gyroSensor1.gyroDev);
+    //called by exti
+    mpuGyroDmaSpiReadStart(&gyroSensor1.gyroDev);
 }
 #endif
 

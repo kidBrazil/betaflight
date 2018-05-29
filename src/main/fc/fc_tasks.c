@@ -33,6 +33,7 @@
 #include "drivers/accgyro/accgyro.h"
 #include "drivers/camera_control.h"
 #include "drivers/compass/compass.h"
+#include "drivers/dma_spi.h"
 #include "drivers/sensor.h"
 #include "drivers/serial.h"
 #include "drivers/stack_check.h"
@@ -423,9 +424,14 @@ cfTask_t cfTasks[TASK_COUNT] = {
     [TASK_GYROPID] = {
         .taskName = "PID",
         .subTaskName = "GYRO",
+#ifdef USE_DMA_SPI_DEVICE
+        .checkFunc = isDmaSpiDataReady,
+        .staticPriority = TASK_PRIORITY_TRIGGER,        
+#else
+        .staticPriority = TASK_PRIORITY_REALTIME,
+#endif
         .taskFunc = taskMainPidLoop,
         .desiredPeriod = TASK_GYROPID_DESIRED_PERIOD,
-        .staticPriority = TASK_PRIORITY_REALTIME,
     },
 
     [TASK_ACCEL] = {

@@ -30,8 +30,8 @@
 
 #include "common/axis.h"
 #include "common/maths.h"
-
 #include "drivers/bus_spi.h"
+#include "drivers/dma_spi.h"
 #include "drivers/exti.h"
 #include "drivers/io.h"
 #include "drivers/sensor.h"
@@ -40,6 +40,8 @@
 #include "fc/runtime_config.h"
 
 #include "sensors/boardalignment.h"
+#include "sensors/gyro.h"
+#include "sensors/acceleration.h"
 
 #include "drivers/system.h"
 
@@ -237,6 +239,25 @@ static gyroToBoardCommMode_t VerifyAllowedCommMode(uint32_t commMode)
     }
 }
 
+uint16_t imufGyroAlignment(void)
+{
+    if (isBoardAlignmentStandard(boardAlignment()))
+    {
+        if(gyroConfig()->gyro_align <= 1)
+        {
+            return 0;
+        }
+        else
+        {
+            return (uint16_t)(gyroConfig()->gyro_align - 1);
+        }
+    }
+    else
+    {
+        return (uint16_t)IMU_CW0;
+    }
+}
+
 void imufSpiGyroInit(gyroDev_t *gyro)
 {
     uint32_t attempt = 0;
@@ -250,7 +271,7 @@ void imufSpiGyroInit(gyroDev_t *gyro)
     rxData.param5 = ( (uint16_t)gyroConfig()->imuf_pitch_lpf_cutoff_hz << 16) | (uint16_t)gyroConfig()->imuf_yaw_lpf_cutoff_hz;
     rxData.param6 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
     rxData.param7 = ( (uint16_t)0 << 16)                                      | (uint16_t)0;
-    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | returnGyroAlignmentForImuf9001();
+    rxData.param8 = ( (int16_t)boardAlignment()->rollDegrees << 16 )          | imufGyroAlignment();
     rxData.param9 = ( (int16_t)boardAlignment()->yawDegrees << 16 )           | (int16_t)boardAlignment()->pitchDegrees;
 
     for (attempt = 0; attempt < 10; attempt++)
@@ -295,7 +316,6 @@ bool imufSpiGyroDetect(gyroDev_t *gyro)
     }
 
     gyro->initFn = imufSpiGyroInit;
-    gyro->readFn = mpuGyroDmaSpiReadStart;
     gyro->scale = 1.0f;
     gyro->mpuConfiguration.resetFn = resetImuf9001;
     return true;

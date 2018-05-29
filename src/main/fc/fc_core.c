@@ -35,6 +35,7 @@
 #include "pg/pg.h"
 #include "pg/pg_ids.h"
 
+#include "drivers/dma_spi.h"
 #include "drivers/light_led.h"
 #include "drivers/sound_beeper.h"
 #include "drivers/system.h"
@@ -931,6 +932,10 @@ static void subTaskMotorUpdate(timeUs_t currentTimeUs)
 // Function for loop trigger
 void taskMainPidLoop(timeUs_t currentTimeUs)
 {
+
+#ifdef USE_DMA_SPI_DEVICE
+    dmaSpiDeviceDataReady = false;
+#endif
     static uint8_t pidUpdateCountdown = 0;
 
 #if defined(SIMULATOR_BUILD) && defined(SIMULATOR_GYROPID_SYNC)

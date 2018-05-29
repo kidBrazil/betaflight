@@ -129,8 +129,3 @@ int16_t gyroGetTemperature(void);
 int16_t gyroRateDps(int axis);
 bool gyroOverflowDetected(void);
 uint16_t gyroAbsRateDps(int axis);
-#ifdef USE_GYRO_IMUF9001
-uint32_t lastImufExtiTime;
-bool gyroIsSane(void);
-uint16_t returnGyroAlignmentForImuf9001(void);
-#endif

@@ -78,6 +78,23 @@ typedef struct imufCommand {
    uint32_t tail;
 } __attribute__ ((__packed__)) imufCommand_t;
 
+typedef struct imufData
+{
+    float gyroX;
+    float gyroY;
+    float gyroZ;    
+    float accX;
+    float accY;
+    float accZ;
+    float tempC;
+    float quaternionW;
+    float quaternionX;
+    float quaternionY;
+    float quaternionZ;
+    uint32_t crc;
+    uint32_t tail;
+} __attribute__((__packed__)) imufData_t;
+
 typedef enum gyroCommands
 {
     IMUF_COMMAND_NONE            = 0,
@@ -196,6 +213,5 @@ typedef enum imufCalibrationSteps
 
 extern volatile imuFrame_t imufQuat;
 volatile uint32_t isImufCalibrating;
-
 
 extern uint32_t getCrcImuf9001(uint32_t* data, uint32_t size);

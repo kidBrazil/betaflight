@@ -64,6 +64,7 @@ extern uint8_t __config_end;
 #include "drivers/compass/compass.h"
 #include "drivers/display.h"
 #include "drivers/dma.h"
+#include "drivers/dma_spi.h"
 #include "drivers/flash.h"
 #include "drivers/io.h"
 #include "drivers/io_impl.h"
@@ -3121,8 +3122,8 @@ static void cliTasks(char *cmdline)
                 taskFrequency = taskInfo.latestDeltaTime == 0 ? 0 : (int)(1000000.0f / ((float)taskInfo.latestDeltaTime));
                 cliPrintf("%02d - (%15s) ", taskId, taskInfo.taskName);
             }
-            const int maxLoad = taskInfo.maxExecutionTime == 0 ? 0 :(taskInfo.maxExecutionTime * taskFrequency + 5000) / 1000;
-            const int averageLoad = taskInfo.averageExecutionTime == 0 ? 0 : (taskInfo.averageExecutionTime * taskFrequency + 5000) / 1000;
+            const int maxLoad = taskInfo.maxExecutionTime == 0 ? 0 :(taskInfo.maxExecutionTime * taskFrequency) / 1000;
+            const int averageLoad = taskInfo.averageExecutionTime == 0 ? 0 : (taskInfo.averageExecutionTime * taskFrequency) / 1000;
             if (taskId != TASK_SERIAL) {
                 maxLoadSum += maxLoad;
                 averageLoadSum += averageLoad;
@@ -3803,7 +3804,7 @@ const clicmd_t cmdTable[] = {
 static void cliReportImufErrors(char *cmdline)
 {
     UNUSED(cmdline);
-    cliPrintf("Current Comm Errors: %lu", imufCrcErrorCount);
+    cliPrintf("Current Comm Errors: %lu", crcErrorCount);
     cliPrintLinefeed();
 }
 
