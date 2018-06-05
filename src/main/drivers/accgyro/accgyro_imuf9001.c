@@ -70,13 +70,36 @@ inline void appendCrcToData(uint32_t* data, uint32_t size)
     data[size] = getCrcImuf9001(data, size);;
 }
 
-static void resetImuf9001(void)
+static inline void gpio_write_pin(GPIO_TypeDef * GPIOx, uint16_t GPIO_Pin, gpioState_t pinState)
 {
-    //reset IMU
-    IOLo( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)) );
-    delay(500);
-    IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)) );
+    if (pinState == GPIO_HI)
+    {
+        GPIOx->BSRRL = (uint32_t)GPIO_Pin;
+    }
+    else
+    {
+        GPIOx->BSRRH = (uint32_t)GPIO_Pin;
+    }
+}
 
+void resetImuf9001(void)
+{
+    gpio_write_pin(GPIOA, GPIO_Pin_4, GPIO_LO);
+    delay(400);
+    gpio_write_pin(GPIOA, GPIO_Pin_4, GPIO_HI);
+    delay(100);
+}
+
+void initImuf9001(void) 
+{
+    GPIO_InitTypeDef gpioInitStruct;
+    gpioInitStruct.GPIO_Pin   = GPIO_Pin_4;
+    gpioInitStruct.GPIO_Mode  = GPIO_Mode_OUT;
+    gpioInitStruct.GPIO_Speed = GPIO_Speed_50MHz;
+    gpioInitStruct.GPIO_OType = GPIO_OType_OD;
+    gpioInitStruct.GPIO_PuPd  = GPIO_PuPd_NOPULL;
+    GPIO_Init(GPIOA, &gpioInitStruct);
+    resetImuf9001();
 }
 
 bool imufSendReceiveSpiBlocking(const busDevice_t *bus, uint8_t *dataTx, uint8_t *daRx, uint8_t length)
@@ -193,10 +216,6 @@ uint8_t imuf9001SpiDetect(const gyroDev_t *gyro)
     IOInit(gyro->bus.busdev_u.spi.csnPin, OWNER_MPU_CS, 0);
     IOConfigGPIO(gyro->bus.busdev_u.spi.csnPin, SPI_IO_CS_CFG);
     IOHi(gyro->bus.busdev_u.spi.csnPin);
-
-    IOInit( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), OWNER_MPU_CS, 0);
-    IOConfigGPIO( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)), SPI_IO_CS_CFG);
-    IOHi( IOGetByTag(IO_TAG(IMUF9001_RST_PIN)));
 
     hardwareInitialised = true;
 
