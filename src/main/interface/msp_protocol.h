@@ -59,7 +59,7 @@
 #define MSP_PROTOCOL_VERSION                0
 
 #define API_VERSION_MAJOR                   1  // increment when major changes are made
-#define API_VERSION_MINOR                   38 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
+#define API_VERSION_MINOR                   40 // increment after a release, to set the version for all changes to go into the following release (if no changes to MSP are made between the releases, this can be reverted before the release)
 
 #define API_VERSION_LENGTH                  2
 
@@ -327,6 +327,8 @@
 #define MSP_SET_RTC              246    //in message          Sets the RTC clock
 #define MSP_RTC                  247    //out message         Gets the RTC clock
 
-// additionnal advanced filter settings
-#define MSP_ADVANCED_FILTER_CONFIG 225         //out message
-#define MSP_SET_ADVANCED_FILTER_CONFIG 226     //in message
+// ButterFlight
+#define MSP_FAST_KALMAN          225    //out message
+#define MSP_SET_FAST_KALMAN      226    //in message
+#define MSP_IMUF_CONFIG          227    //out message
+#define MSP_SET_IMUF_CONFIG      228    //in message
