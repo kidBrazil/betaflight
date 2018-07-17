@@ -51,6 +51,7 @@
 #define USE_GYRO_DATA_ANALYSE
 #define USE_ADC
 #define USE_ADC_INTERNAL
+#define USE_USB_CDC_HID
 
 #if defined(STM32F40_41xxx) || defined(STM32F411xE)
 #define USE_OVERCLOCK
@@ -120,18 +121,18 @@
 #if (FLASH_SIZE > 64)
 #define USE_BLACKBOX
 #define USE_RESOURCE_MGMT
-//#define USE_RUNAWAY_TAKEOFF     // Runaway Takeoff Prevention (anti-taz) - Marked for removal
+#define USE_RUNAWAY_TAKEOFF     // Runaway Takeoff Prevention (anti-taz) - Marked for removal
 #define USE_TELEMETRY
 #define USE_TELEMETRY_FRSKY_HUB
 #define USE_TELEMETRY_HOTT
 #define USE_TELEMETRY_LTM
 #define USE_GYRO_FAST_KALMAN
 #define USE_TELEMETRY_SMARTPORT
+#define USE_LED_STRIP
 #endif
 
 #if (FLASH_SIZE > 128)
 #define USE_SERIALRX_SUMH       // Graupner legacy protocol
-#define USE_LED_STRIP
 #define USE_CAMERA_CONTROL
 #define USE_CMS
 #define USE_COPY_PROFILE_CMS_MENU
